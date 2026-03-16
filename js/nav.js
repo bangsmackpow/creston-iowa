@@ -28,12 +28,12 @@
   <div class="mobile-menu" id="mobile-menu">
     <a href="/index.html">🏠 Home</a>
     <a href="/pages/about.html">📖 About Creston</a>
-    <a href="/pages/dining.html">🍽️ Dining</a>
-    <a href="/pages/attractions.html">🎈 Attractions</a>
-    <a href="/pages/news.html">📰 News</a>
+    <a href="/food">🍽️ Dining</a>
+    <a href="/attractions">🎈 Attractions</a>
+    <a href="/news">📰 News</a>
     <a href="/pages/government.html">🏛️ Government</a>
     <a href="/pages/chamber.html">🤝 Chamber</a>
-    <a href="/pages/jobs.html" class="nav-jobs">🧳 Post a Job / Find Work</a>
+    <a href="/jobs" class="nav-jobs">🧳 Post a Job / Find Work</a>
   </div>
   `;
 
