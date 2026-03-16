@@ -152,3 +152,5 @@ export function adSlot(size = 'banner', label = 'Advertisement') {
   <a href="/pages/advertise.html" class="btn btn-gold" style="font-size:.78rem;padding:6px 14px;margin-top:8px;">Advertise</a>
 </div>`;
 }
+
+export { escHtml as escapeHtml };
