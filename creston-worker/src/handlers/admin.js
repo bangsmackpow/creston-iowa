@@ -288,7 +288,7 @@ async function renderEditor(env, type, slug) {
           <button type="button" onclick="insertMd('### ', '')" title="Sub-heading">H3</button>
           <button type="button" onclick="insertMd('- ', '')" title="List item">• List</button>
           <button type="button" onclick="insertMd('[text](', ')')" title="Link">🔗 Link</button>
-          <button type="button" onclick="insertMd('`', '`')" title="Code">Code</button>
+		  <button type="button" onclick="insertMd('&#96;', '&#96;')" title="Code">Code</button>
           <span class="toolbar-sep"></span>
           <button type="button" onclick="loadTemplate()" title="Load template" style="color:#c9933a;">↺ Template</button>
         </div>
