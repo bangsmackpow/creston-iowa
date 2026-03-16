@@ -167,10 +167,10 @@ async function routeAdminSection(request, env, url, path) {
 // ── Content List ───────────────────────────────────────────────
 async function renderContentList(env, type) {
   const prefixMap = {
-    jobs:        ['jobs/active', 'jobs/expired'],
-    food:        ['food'],
-    news:        ['news'],
-    attractions: ['attractions'],
+    jobs:        ['jobs/active/', 'jobs/expired/'],
+    food:        ['food/'],
+    news:        ['news/'],
+    attractions: ['attractions/'],
   };
 
   const prefixes = prefixMap[type];

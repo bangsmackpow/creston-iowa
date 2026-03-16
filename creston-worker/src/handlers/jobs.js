@@ -23,7 +23,7 @@ export async function handleJobs(request, env, url) {
 
 // ── Job Listing Page ─────────────────────────────────────────
 async function renderJobList(request, env) {
-  const jobs = await listContent(env, 'jobs/active');
+  const jobs = await listContent(env, 'jobs/active/');
 
   // Filter out truly expired ones (past expires date)
   const active = jobs.filter(j => !isExpired(j.meta));
