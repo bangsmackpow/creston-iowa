@@ -1,6 +1,10 @@
 # Cloudflare Pages _redirects
 # Handles trailing slashes and common redirects
 
+/pages/dining.html    /food    301
+/pages/attractions.html    /attractions    301
+/pages/news.html    /news    301
+/pages/jobs.html    /jobs    301
 /home /index.html 301
 /dining /pages/dining.html 301
 /restaurants /pages/dining.html 301
