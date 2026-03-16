@@ -1,0 +1,18 @@
+{
+  "name": "creston-iowa-worker",
+  "version": "1.0.0",
+  "description": "Cloudflare Worker for creston-iowa.com — serves dynamic content from R2",
+  "main": "src/worker.js",
+  "type": "module",
+  "scripts": {
+    "dev":    "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail":   "wrangler tail",
+    "seed":   "bash seed-r2.sh",
+    "secret:password": "wrangler secret put ADMIN_PASSWORD",
+    "secret:token":    "wrangler secret put ADMIN_TOKEN"
+  },
+  "devDependencies": {
+    "wrangler": "^3.0.0"
+  }
+}

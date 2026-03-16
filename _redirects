@@ -1,0 +1,21 @@
+# Cloudflare Pages _redirects
+# Handles trailing slashes and common redirects
+
+/home /index.html 301
+/dining /pages/dining.html 301
+/restaurants /pages/dining.html 301
+/food /pages/dining.html 301
+/attractions /pages/attractions.html 301
+/things-to-do /pages/attractions.html 301
+/government /pages/government.html 301
+/police /pages/government.html#police 301
+/safety /pages/government.html#emergency 301
+/jobs /pages/jobs.html 301
+/careers /pages/jobs.html 301
+/employment /pages/jobs.html 301
+/chamber /pages/chamber.html 301
+/news /pages/news.html 301
+/about /pages/about.html 301
+/history /pages/about.html 301
+/advertise /pages/advertise.html 301
+/contact /pages/contact.html 301
