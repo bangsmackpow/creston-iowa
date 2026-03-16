@@ -16,7 +16,6 @@ import { isAuthenticated } from '../auth.js';
 import { listContent, getContent, putContent, deleteContent, moveContent, findBySlug } from '../r2.js';
 import { parseMarkdown } from '../markdown.js';
 
-// Maps URL type param → R2 prefix
 const TYPE_MAP = {
   jobs:        'jobs/active',
   'jobs-all':  'jobs',
@@ -26,44 +25,37 @@ const TYPE_MAP = {
 };
 
 export async function handleApi(request, env, url) {
-  // Auth check on every API request
   if (!isAuthenticated(request, env)) {
     return jsonResponse({ error: 'Unauthorized' }, 401);
   }
 
   const parts  = url.pathname.replace(/^\/api\//, '').split('/');
-  const action = parts[0]; // 'content' or special actions
+  const action = parts[0];
 
-  // ── Special job actions ────────────────────────────────────
+  // Special job actions
   if (action === 'jobs' && parts[2] === 'expire') {
-    return handleJobExpire(env, parts[1]);
+    return handleJobExpire(request, env, parts[1]);
   }
   if (action === 'jobs' && parts[2] === 'restore') {
-    return handleJobRestore(env, parts[1]);
+    return handleJobRestore(request, env, parts[1]);
   }
 
-  // ── Standard CRUD ──────────────────────────────────────────
   if (action !== 'content') {
     return jsonResponse({ error: 'Unknown API action' }, 404);
   }
 
-  const type = parts[1];
-  const slug = parts[2];
+  const type   = parts[1];
+  const slug   = parts[2];
   const prefix = TYPE_MAP[type];
 
   if (!prefix) {
-    return jsonResponse({ error: `Unknown type: ${type}. Valid: ${Object.keys(TYPE_MAP).join(', ')}` }, 400);
+    return jsonResponse({ error: `Unknown type: ${type}` }, 400);
   }
 
   // LIST
   if (request.method === 'GET' && !slug) {
     const items = await listContent(env, prefix);
-    return jsonResponse(items.map(i => ({
-      slug:     i.slug,
-      key:      i.key,
-      meta:     i.meta,
-      modified: i.modified,
-    })));
+    return jsonResponse(items.map(i => ({ slug: i.slug, key: i.key, meta: i.meta, modified: i.modified })));
   }
 
   // GET ONE
@@ -73,30 +65,36 @@ export async function handleApi(request, env, url) {
     return jsonResponse(item);
   }
 
-  // CREATE
+  // CREATE — supports company_slug for scoped job paths
   if (request.method === 'POST' && !slug) {
     const body = await request.json();
-    if (!body.slug) return jsonResponse({ error: 'slug is required' }, 400);
+    if (!body.slug)    return jsonResponse({ error: 'slug is required' }, 400);
     if (!body.content) return jsonResponse({ error: 'content is required' }, 400);
 
-    const key = `${prefix}/${sanitizeSlug(body.slug)}.md`;
+    let key;
+    if (type === 'jobs' && body.company_slug) {
+      key = `jobs/active/${sanitizeSlug(body.company_slug)}/${sanitizeSlug(body.slug)}.md`;
+    } else {
+      key = `${prefix}/${sanitizeSlug(body.slug)}.md`;
+    }
     await putContent(env, key, body.content);
     return jsonResponse({ ok: true, key });
   }
 
-  // UPDATE
+  // UPDATE — use exact key if provided
   if (request.method === 'PUT' && slug) {
     const body = await request.json();
     if (!body.content) return jsonResponse({ error: 'content is required' }, 400);
-
-    const key = `${prefix}/${sanitizeSlug(slug)}.md`;
+    const key = body.key || `${prefix}/${sanitizeSlug(slug)}.md`;
     await putContent(env, key, body.content);
     return jsonResponse({ ok: true, key });
   }
 
-  // DELETE
+  // DELETE — use exact key if provided
   if (request.method === 'DELETE' && slug) {
-    const key = `${prefix}/${sanitizeSlug(slug)}.md`;
+    let body = {};
+    try { body = await request.json(); } catch {}
+    const key = body.key || `${prefix}/${sanitizeSlug(slug)}.md`;
     await deleteContent(env, key);
     return jsonResponse({ ok: true });
   }
@@ -104,28 +102,41 @@ export async function handleApi(request, env, url) {
   return jsonResponse({ error: 'Method not allowed' }, 405);
 }
 
-// ── Special job actions ────────────────────────────────────────
-async function handleJobExpire(env, slug) {
+// Special job actions — support explicit key in body
+async function handleJobExpire(request, env, slug) {
   if (!slug) return jsonResponse({ error: 'slug required' }, 400);
   try {
-    await moveContent(env, `jobs/active/${slug}.md`, `jobs/expired/${slug}.md`);
-    return jsonResponse({ ok: true, moved: `jobs/expired/${slug}.md` });
+    let body = {};
+    try { body = await request.json(); } catch {}
+
+    // Determine source key — use explicit key if provided, else guess
+    const fromKey = body.key || `jobs/active/${slug}.md`;
+    // Determine destination — mirror the folder structure
+    const toKey   = fromKey.replace('jobs/active/', 'jobs/expired/');
+
+    await moveContent(env, fromKey, toKey);
+    return jsonResponse({ ok: true, moved: toKey });
   } catch (err) {
     return jsonResponse({ error: err.message }, 404);
   }
 }
 
-async function handleJobRestore(env, slug) {
+async function handleJobRestore(request, env, slug) {
   if (!slug) return jsonResponse({ error: 'slug required' }, 400);
   try {
-    await moveContent(env, `jobs/expired/${slug}.md`, `jobs/active/${slug}.md`);
-    return jsonResponse({ ok: true, moved: `jobs/active/${slug}.md` });
+    let body = {};
+    try { body = await request.json(); } catch {}
+
+    const fromKey = body.key || `jobs/expired/${slug}.md`;
+    const toKey   = fromKey.replace('jobs/expired/', 'jobs/active/');
+
+    await moveContent(env, fromKey, toKey);
+    return jsonResponse({ ok: true, moved: toKey });
   } catch (err) {
     return jsonResponse({ error: err.message }, 404);
   }
 }
 
-// ── Helpers ────────────────────────────────────────────────────
 function jsonResponse(data, status = 200) {
   return new Response(JSON.stringify(data, null, 2), {
     status,

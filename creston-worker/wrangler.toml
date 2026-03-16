@@ -18,6 +18,13 @@ routes = [
 binding = "BUCKET"
 bucket_name = "crestoniowa"
 
+# D1 database — replace database_id after running:
+#   npx wrangler d1 create creston-auth
+[[d1_databases]]
+binding       = "DB"
+database_name = "creston-auth"
+database_id   = "601a8f88-100a-4a55-b723-083782d4efd2"
+
 # Environment variables (non-secret)
 [vars]
 SITE_NAME = "Creston, Iowa"
