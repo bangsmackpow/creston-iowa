@@ -1,7 +1,6 @@
 {
   "version": 1,
-  "include": ["/*"],
-  "exclude": [
+  "include": [
     "/jobs",
     "/jobs/*",
     "/food",
@@ -13,5 +12,6 @@
     "/admin",
     "/admin/*",
     "/api/*"
-  ]
+  ],
+  "exclude": []
 }
