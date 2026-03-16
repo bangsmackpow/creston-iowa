@@ -12,7 +12,7 @@
  * POST   /api/jobs/:slug/restore      → move job back to active/
  */
 
-import { isAuthenticated } from '../auth.js';
+import { getAuthUser } from '../db/auth-d1.js';
 import { listContent, getContent, putContent, deleteContent, moveContent, findBySlug } from '../r2.js';
 import { parseMarkdown } from '../markdown.js';
 
@@ -25,9 +25,10 @@ const TYPE_MAP = {
 };
 
 export async function handleApi(request, env, url) {
-  if (!isAuthenticated(request, env)) {
-    return jsonResponse({ error: 'Unauthorized' }, 401);
-  }
+  const user = await getAuthUser(request, env);
+if (!user) {
+  return jsonResponse({ error: 'Unauthorized' }, 401);
+}
 
   const parts  = url.pathname.replace(/^\/api\//, '').split('/');
   const action = parts[0];
