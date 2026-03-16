@@ -116,10 +116,10 @@
   // Inject nav
   const navTarget = document.getElementById('nav-placeholder');
   if (navTarget) navTarget.innerHTML = NAV_HTML;
-  else document.body.insertAdjacentHTML('afterbegin', NAV_HTML);
+  // If no placeholder, do nothing — Worker pages include their own nav
 
   // Inject footer
   const footerTarget = document.getElementById('footer-placeholder');
-  if (footerTarget) footerTarget.innerHTML = FOOTER_HTML;
-  else document.body.insertAdjacentHTML('beforeend', FOOTER_HTML + SCRIPTS);
+  if (footerTarget) footerTarget.innerHTML = FOOTER_HTML + SCRIPTS;
+  // If no placeholder, do nothing — Worker pages include their own footer
 })();
