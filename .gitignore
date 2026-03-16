@@ -1,0 +1,31 @@
+# ── Secrets & Environment ─────────────────────────
+.env
+.env.local
+.env.production
+.dev.vars
+
+# ── Node / Wrangler ───────────────────────────────
+node_modules/
+.wrangler/
+dist/
+.cache/
+
+# ── OS Files ──────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Editor ────────────────────────────────────────
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# ── Logs ──────────────────────────────────────────
+*.log
+npm-debug.log*
+wrangler-*.log
+
+# ── Build output ──────────────────────────────────
+/creston-iowa/{css,js,pages,images}/
+*.zip
