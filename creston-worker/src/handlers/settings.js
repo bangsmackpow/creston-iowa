@@ -158,6 +158,8 @@ function settingsPage(cfg, tab, saved, user) {
         // Collect all form inputs
         form.querySelectorAll('[name]').forEach(el => {
           const key = el.name;
+          // Skip unchecked radio buttons — only save the selected one
+          if (el.type === 'radio' && !el.checked) return;
           const val = el.type === 'checkbox' ? el.checked : el.value;
 
           // Handle nested keys like "custom_colors.primary"
