@@ -149,7 +149,8 @@ async function renderDashboard(env, user) {
     <a href="/admin/news/new"        class="action-btn btn-news">+ Write Article</a>
     <a href="/admin/attractions/new" class="action-btn btn-attr">+ Add Attraction</a>
     <a href="/admin/companies/new"   class="action-btn" style="background:#6a3a7a;">+ New Company</a>
-    <a href="/admin/users/new"       class="action-btn" style="background:#2e4163;">+ Invite User</a>` : `
+    <a href="/admin/users/new"       class="action-btn" style="background:#2e4163;">+ Invite User</a>
+    <a href="/admin/settings"        class="action-btn" style="background:#444444;">⚙️ Site Settings</a>` : `
     <a href="/admin/jobs/new" class="action-btn btn-jobs">+ Post a Job</a>
     <a href="/admin/account"  class="action-btn" style="background:#2e4163;">⚙️ My Account</a>`;
 
@@ -732,7 +733,8 @@ function adminPage(title, body, user) {
       <a href="/admin/news">📰 News</a>
       <a href="/admin/attractions">🎈 Attractions</a>
       <a href="/admin/companies">🏢 Companies</a>
-      <a href="/admin/users">👥 Users</a>` : ''}
+      <a href="/admin/users">👥 Users</a>
+      <a href="/admin/settings">⚙️ Settings</a>` : ''}
     </nav>
     <div class="admin-header-right">
       <a href="/admin/account" class="admin-view-site">⚙️ ${escapeHtml(user?.name||'Account')}</a>

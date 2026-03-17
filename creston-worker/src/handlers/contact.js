@@ -14,9 +14,9 @@ import { renderShell, escHtml as escapeHtml, adSlot } from '../shell.js';
 
 export async function handleContact(request, env, url) {
   if (request.method === 'POST') {
-    return processContactForm(request, env);
+    return await processContactForm(request, env);
   }
-  return renderContactPage(env, null, null);
+  return await renderContactPage(env, null, null);
 }
 
 // ── Process form submission ────────────────────────────────────
@@ -39,31 +39,31 @@ async function processContactForm(request, env) {
       };
     }
   } catch {
-    return renderContactPage(env, null, 'Could not read form data. Please try again.');
+    return await renderContactPage(env, null, 'Could not read form data. Please try again.');
   }
 
   // Validate
   const { name, email, subject, message, type } = body;
   if (!name?.trim() || !email?.trim() || !message?.trim()) {
-    return renderContactPage(env, body, 'Name, email, and message are required.');
+    return await renderContactPage(env, body, 'Name, email, and message are required.');
   }
   if (!isValidEmail(email)) {
-    return renderContactPage(env, body, 'Please enter a valid email address.');
+    return await renderContactPage(env, body, 'Please enter a valid email address.');
   }
   if (message.trim().length < 10) {
-    return renderContactPage(env, body, 'Message is too short — please provide more detail.');
+    return await renderContactPage(env, body, 'Message is too short — please provide more detail.');
   }
 
   // Honeypot spam check
   if (body.website_url) {
     // Bot filled the hidden field — silently succeed
-    return renderContactPage(env, null, null, true);
+    return await renderContactPage(env, null, null, true);
   }
 
   // Send via Resend
   if (!env.RESEND_API_KEY) {
     console.error('RESEND_API_KEY not set');
-    return renderContactPage(env, body, 'Email service not configured. Please email us directly at hello@creston-iowa.com.');
+    return await renderContactPage(env, body, 'Email service not configured. Please email us directly at hello@creston-iowa.com.');
   }
 
   const toEmail   = env.CONTACT_EMAIL || 'hello@creston-iowa.com';
@@ -90,7 +90,7 @@ async function processContactForm(request, env) {
     if (!res.ok) {
       const err = await res.text();
       console.error('Resend error:', err);
-      return renderContactPage(env, body, 'Failed to send message. Please email us directly at hello@creston-iowa.com.');
+      return await renderContactPage(env, body, 'Failed to send message. Please email us directly at hello@creston-iowa.com.');
     }
 
     // Send confirmation to the sender
@@ -108,16 +108,16 @@ async function processContactForm(request, env) {
       }),
     });
 
-    return renderContactPage(env, null, null, true);
+    return await renderContactPage(env, null, null, true);
 
   } catch (err) {
     console.error('Contact form error:', err);
-    return renderContactPage(env, body, 'An unexpected error occurred. Please try again or email us directly.');
+    return await renderContactPage(env, body, 'An unexpected error occurred. Please try again or email us directly.');
   }
 }
 
 // ── Render contact page ────────────────────────────────────────
-function renderContactPage(env, prefill = null, error = null, success = false) {
+async function renderContactPage(env, prefill = null, error = null, success = false) {
   const p = prefill || {};
 
   const content = `
@@ -315,7 +315,7 @@ function renderContactPage(env, prefill = null, error = null, success = false) {
       }
     </script>`;
 
-  return new Response(renderShell({
+  return new Response(await renderShell({
     title:       'Contact Us',
     description: 'Get in touch with creston-iowa.com — submit news tips, advertising inquiries, business listings, or general questions.',
     eyebrow:     '✉️ Get in Touch',
