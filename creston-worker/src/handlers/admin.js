@@ -522,12 +522,21 @@ async function renderContentList(env, type, user) {
       if (!file) continue;
       const raw  = await file.text();
       const meta = parseSimpleFm(raw);
+      // Extract company slug from R2 key path
+      // jobs/active/company-slug/job.md → company-slug
+      // jobs/active/job.md             → (none)
+      const keyParts    = obj.key.split('/');
+      const companyFromKey = type === 'jobs' && keyParts.length >= 4
+        ? keyParts[2]   // jobs / active / company-slug / job.md
+        : '';
+
       allItems.push({
-        slug:      obj.key.split('/').pop().replace('.md',''),
-        key:       obj.key,
+        slug:        obj.key.split('/').pop().replace('.md',''),
+        key:         obj.key,
         meta,
-        isExpired: obj.key.includes('/expired/'),
-        modified:  obj.uploaded,
+        isExpired:   obj.key.includes('/expired/'),
+        modified:    obj.uploaded,
+        companyFromKey,
       });
     }
   }
@@ -539,6 +548,12 @@ async function renderContentList(env, type, user) {
         <strong>${escapeHtml(item.meta.title || item.meta.name || item.slug)}</strong>
         ${item.isExpired ? '<span class="badge-expired">expired</span>' : ''}
       </td>
+      ${type === 'jobs' && sup ? `<td>
+        ${item.companyFromKey
+          ? `<span class="tag tag-navy" style="font-size:.72rem;">${escapeHtml(item.companyFromKey)}</span>`
+          : `<span style="color:#bbb;font-size:.78rem;">legacy</span>`}
+        ${item.meta.company ? `<br><small style="color:#888;font-size:.72rem;">${escapeHtml(item.meta.company)}</small>` : ''}
+      </td>` : ''}
       <td>${escapeHtml(item.meta.category || item.meta.type || '—')}</td>
       <td>${escapeHtml(item.meta.posted || item.meta.date || (item.modified ? new Date(item.modified).toLocaleDateString() : '—'))}</td>
       <td class="action-col">
@@ -556,8 +571,14 @@ async function renderContentList(env, type, user) {
       <a href="/admin/${type}/new" class="btn-admin-primary">+ Add New</a>
     </div>
     <table class="admin-table">
-      <thead><tr><th>Title / Name</th><th>Category</th><th>Date</th><th>Actions</th></tr></thead>
-      <tbody>${rows || noItems(4, `No ${type} yet`)}</tbody>
+      <thead><tr>
+        <th>Title / Name</th>
+        ${type === 'jobs' && sup ? '<th>Company</th>' : ''}
+        <th>Category</th>
+        <th>Date</th>
+        <th>Actions</th>
+      </tr></thead>
+      <tbody>${rows || noItems(type === 'jobs' && sup ? 5 : 4, `No ${type} yet`)}</tbody>
     </table>
     <script>
       const TOKEN = sessionStorage.getItem('admin_token') || '';
