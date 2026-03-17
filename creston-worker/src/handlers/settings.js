@@ -56,6 +56,9 @@ async function saveSettings(request, env) {
     const newConfig = mergeSettings(current, updates);
     await saveSiteConfig(env, newConfig);
 
+    // Purge Cloudflare edge cache so theme/config changes show immediately
+    await purgeCache(env);
+
     return new Response(JSON.stringify({ ok: true }), {
       headers: { 'Content-Type': 'application/json' }
     });
@@ -64,6 +67,29 @@ async function saveSettings(request, env) {
     return new Response(JSON.stringify({ error: err.message }), {
       status: 500, headers: { 'Content-Type': 'application/json' }
     });
+  }
+}
+
+async function purgeCache(env) {
+  // Requires CF_ZONE_ID and CF_API_TOKEN secrets
+  // Set via: npx wrangler secret put CF_ZONE_ID
+  //          npx wrangler secret put CF_API_TOKEN (needs Cache Purge permission)
+  if (!env.CF_ZONE_ID || !env.CF_API_TOKEN) {
+    console.log('Cache purge skipped — CF_ZONE_ID or CF_API_TOKEN not set');
+    return;
+  }
+  try {
+    await fetch(`https://api.cloudflare.com/client/v4/zones/${env.CF_ZONE_ID}/purge_cache`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${env.CF_API_TOKEN}`,
+        'Content-Type':  'application/json',
+      },
+      body: JSON.stringify({ purge_everything: true }),
+    });
+  } catch (err) {
+    console.error('Cache purge failed:', err);
+    // Non-fatal — settings still saved
   }
 }
 

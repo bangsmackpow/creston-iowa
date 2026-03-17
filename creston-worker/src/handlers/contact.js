@@ -11,6 +11,7 @@
  */
 
 import { renderShell, escHtml as escapeHtml, adSlot } from '../shell.js';
+import { getSiteConfig } from '../db/site.js';
 
 export async function handleContact(request, env, url) {
   if (request.method === 'POST') {
@@ -119,6 +120,7 @@ async function processContactForm(request, env) {
 // ── Render contact page ────────────────────────────────────────
 async function renderContactPage(env, prefill = null, error = null, success = false) {
   const p = prefill || {};
+  const cfg = await getSiteConfig(env);
 
   const content = `
     <section class="section">
@@ -242,7 +244,7 @@ async function renderContactPage(env, prefill = null, error = null, success = fa
               </div>
             </div>
 
-            ${adSlot('square')}
+            ${adSlot('square', cfg)}
           </aside>
         </div>
       </div>
@@ -323,6 +325,7 @@ async function renderContactPage(env, prefill = null, error = null, success = fa
     subheading:  'News tips, advertising, business listings, or just saying hello — we want to hear from you.',
     activeNav:   'Contact',
     env,
+    config: cfg,
     content,
   }), {
     headers: { 'Content-Type': 'text/html; charset=utf-8' }

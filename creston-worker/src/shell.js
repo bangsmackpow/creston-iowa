@@ -174,7 +174,11 @@ export function escHtml(str) {
 
 export { escHtml as escapeHtml };
 
-export function adSlot(size = 'banner') {
+export function adSlot(size = 'banner', config = null) {
+  // If config passed and advertising feature is disabled, return empty string
+  if (config && config.features && config.features.advertising === false) {
+    return '';
+  }
   return `<div class="ad-slot ad-${size}" role="complementary">
   <div class="ad-label">Advertisement</div>
   <strong>Your Business Here</strong>

@@ -6,6 +6,7 @@
 
 import { listContent, findBySlug } from '../r2.js';
 import { renderShell, escHtml, adSlot } from '../shell.js';
+import { getSiteConfig } from '../db/site.js';
 
 export async function handleFood(request, env, url) {
   const slug = url.pathname.replace(/^\/food\/?/, '').split('/').filter(Boolean)[0];
@@ -15,6 +16,7 @@ export async function handleFood(request, env, url) {
 }
 
 async function renderFoodList(request, env) {
+  const cfg = await getSiteConfig(env);
   const items = await listContent(env, 'food');
 
   const CATEGORIES = ['steakhouse','mexican','american','chinese','cafe','pizza','bar','brewery','other'];
@@ -31,7 +33,7 @@ async function renderFoodList(request, env) {
 
   const content = `
     <div class="container" style="padding:24px 24px 0;">
-      ${adSlot('leaderboard')}
+      ${adSlot('leaderboard', cfg)}
     </div>
 
     <section class="section">
@@ -75,11 +77,13 @@ async function renderFoodList(request, env) {
     subheading:  'From chophouses and cantinas to espresso bars and craft breweries.',
     activeNav:   'Dining',
     env,
+    config: cfg,
     content,
   }));
 }
 
 async function renderFoodDetail(request, env, slug) {
+  const cfg = await getSiteConfig(env);
   const item = await findBySlug(env, 'food', slug);
   if (!item) return new Response('Restaurant not found', { status: 404 });
 
@@ -121,7 +125,7 @@ async function renderFoodDetail(request, env, slug) {
                 ${m.tags && Array.isArray(m.tags) ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;">${m.tags.map(t => `<span class="tag tag-green">${escHtml(t)}</span>`).join('')}</div>` : ''}
               </div>
             </div>
-            ${adSlot('square')}
+            ${adSlot('square', cfg)}
           </aside>
         </div>
       </div>
@@ -135,11 +139,13 @@ async function renderFoodDetail(request, env, slug) {
     subheading:  `${m.category || ''}${m.address ? ' · ' + m.address : ''}`,
     activeNav:   'Dining',
     env,
+    config: cfg,
     content,
   }));
 }
 
-function renderFoodCard(item) {
+async function renderFoodCard(item) {
+  const cfg = await getSiteConfig(env);
   const m       = item.meta;
   const cat     = (m.category || 'other').toLowerCase();
   const bgColor = {
@@ -187,7 +193,7 @@ function htmlResponse(html) {
   return new Response(html, {
     headers: {
       'Content-Type':  'text/html; charset=utf-8',
-      'Cache-Control': 'public, max-age=600, stale-while-revalidate=120',
+      'Cache-Control': 'public, max-age=0, must-revalidate',
     }
   });
 }

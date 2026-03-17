@@ -6,6 +6,7 @@
 
 import { listContent, findBySlug } from '../r2.js';
 import { renderShell, escHtml, adSlot } from '../shell.js';
+import { getSiteConfig } from '../db/site.js';
 
 export async function handleAttractions(request, env, url) {
   const slug = url.pathname.replace(/^\/attractions\/?/, '').split('/').filter(Boolean)[0];
@@ -14,6 +15,7 @@ export async function handleAttractions(request, env, url) {
 }
 
 async function renderAttractionList(request, env) {
+  const cfg = await getSiteConfig(env);
   const items = await listContent(env, 'attractions');
 
   const cards = items.length === 0
@@ -37,11 +39,13 @@ async function renderAttractionList(request, env) {
     subheading:  'Outdoor adventures, rich railroad heritage, vibrant arts, and Iowa\'s best balloon festival.',
     activeNav:   'Attractions',
     env,
+    config: cfg,
     content,
   }));
 }
 
 async function renderAttractionDetail(request, env, slug) {
+  const cfg = await getSiteConfig(env);
   const item = await findBySlug(env, 'attractions', slug);
   if (!item) return new Response('Attraction not found', { status: 404 });
 
@@ -81,11 +85,13 @@ async function renderAttractionDetail(request, env, slug) {
     subheading:  m.tagline || '',
     activeNav:   'Attractions',
     env,
+    config: cfg,
     content,
   }));
 }
 
-function renderAttractionCard(item) {
+async function renderAttractionCard(item) {
+  const cfg = await getSiteConfig(env);
   const m = item.meta;
   return `
     <a href="/attractions/${escHtml(item.slug)}" class="attract-card">
@@ -97,6 +103,6 @@ function renderAttractionCard(item) {
 
 function htmlResponse(html) {
   return new Response(html, {
-    headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'public, max-age=600' }
+    headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'public, max-age=0, must-revalidate' }
   });
 }

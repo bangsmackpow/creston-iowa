@@ -6,6 +6,7 @@
 
 import { listContent, findBySlug } from '../r2.js';
 import { renderShell, escHtml, adSlot } from '../shell.js';
+import { getSiteConfig } from '../db/site.js';
 import { formatDate } from '../markdown.js';
 
 export async function handleNews(request, env, url) {
@@ -15,6 +16,7 @@ export async function handleNews(request, env, url) {
 }
 
 async function renderNewsList(request, env) {
+  const cfg = await getSiteConfig(env);
   const articles = await listContent(env, 'news');
 
   const articleCards = articles.length === 0
@@ -48,7 +50,7 @@ async function renderNewsList(request, env) {
                 </ul>
               </div>
             </div>
-            ${adSlot('square')}
+            ${adSlot('square', cfg)}
           </aside>
         </div>
       </div>
@@ -62,11 +64,13 @@ async function renderNewsList(request, env) {
     subheading:  'Community news, events, and announcements from Creston and Union County, Iowa.',
     activeNav:   'News',
     env,
+    config: cfg,
     content,
   }));
 }
 
 async function renderNewsDetail(request, env, slug) {
+  const cfg = await getSiteConfig(env);
   const article = await findBySlug(env, 'news', slug);
   if (!article) return new Response('Article not found', { status: 404 });
   const m = article.meta;
@@ -98,7 +102,7 @@ async function renderNewsDetail(request, env, slug) {
                 ${m.author   ? `<div class="info-block" style="padding:8px 0;border:none;"><div><h4>Author</h4><p style="margin:0;">${escHtml(m.author)}</p></div></div>` : ''}
               </div>
             </div>
-            ${adSlot('square')}
+            ${adSlot('square', cfg)}
           </aside>
         </div>
       </div>
@@ -112,11 +116,13 @@ async function renderNewsDetail(request, env, slug) {
     subheading:  m.summary || '',
     activeNav:   'News',
     env,
+    config: cfg,
     content,
   }));
 }
 
-function renderNewsCard(article) {
+async function renderNewsCard(article) {
+  const cfg = await getSiteConfig(env);
   const m    = article.meta;
   const date = m.date ? new Date(m.date + 'T12:00:00') : null;
   const day   = date ? date.getDate() : '—';
@@ -143,6 +149,6 @@ function renderNewsCard(article) {
 
 function htmlResponse(html) {
   return new Response(html, {
-    headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'public, max-age=300' }
+    headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'public, max-age=0, must-revalidate' }
   });
 }

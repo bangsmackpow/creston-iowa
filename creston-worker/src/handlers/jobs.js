@@ -6,6 +6,7 @@
 
 import { listContent, findBySlug } from '../r2.js';
 import { renderShell, escHtml, adSlot } from '../shell.js';
+import { getSiteConfig } from '../db/site.js';
 import { formatDate, isExpired } from '../markdown.js';
 
 export async function handleJobs(request, env, url) {
@@ -23,6 +24,7 @@ export async function handleJobs(request, env, url) {
 
 // ── Job Listing Page ─────────────────────────────────────────
 async function renderJobList(request, env) {
+  const cfg = await getSiteConfig(env);
   const jobs = await listContent(env, 'jobs/active');
 
   // Filter out truly expired ones (past expires date)
@@ -79,7 +81,7 @@ async function renderJobList(request, env) {
 
             ${renderCategorySidebar(active)}
 
-            ${adSlot('square')}
+            ${adSlot('square', cfg)}
           </aside>
         </div>
       </div>
@@ -112,12 +114,14 @@ async function renderJobList(request, env) {
     subheading: 'Connecting Creston-area employers with local talent. Live and work in Union County.',
     activeNav:  'Jobs',
     env,
+    config: cfg,
     content,
   }));
 }
 
 // ── Job Detail Page ──────────────────────────────────────────
 async function renderJobDetail(request, env, slug) {
+  const cfg = await getSiteConfig(env);
   const job = await findBySlug(env, 'jobs/active', slug);
 
   if (!job) {
@@ -185,7 +189,7 @@ async function renderJobDetail(request, env, slug) {
                 ${infoRow('Expires',  formatDate(m.expires))}
               </div>
             </div>
-            ${adSlot('square')}
+            ${adSlot('square', cfg)}
           </aside>
         </div>
       </div>
@@ -199,12 +203,14 @@ async function renderJobDetail(request, env, slug) {
     subheading: `${m.company || ''} · ${m.location || 'Creston, IA'}`,
     activeNav:  'Jobs',
     env,
+    config: cfg,
     content,
   }));
 }
 
 // ── Render helpers ───────────────────────────────────────────
-function renderJobCard(job) {
+async function renderJobCard(job) {
+  const cfg = await getSiteConfig(env);
   const m = job.meta;
   const isFeatured = m.featured === true;
 
@@ -234,7 +240,8 @@ function renderJobCard(job) {
     </div>`;
 }
 
-function renderCategorySidebar(jobs) {
+async function renderCategorySidebar(jobs) {
+  const cfg = await getSiteConfig(env);
   const counts = {};
   for (const j of jobs) {
     const cat = j.meta.category || 'Other';
@@ -272,7 +279,7 @@ function htmlResponse(html) {
   return new Response(html, {
     headers: {
       'Content-Type': 'text/html; charset=utf-8',
-      'Cache-Control': 'public, max-age=300, stale-while-revalidate=60',
+      'Cache-Control': 'public, max-age=0, must-revalidate',
     }
   });
 }
