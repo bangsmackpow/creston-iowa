@@ -1,16 +1,14 @@
 /**
  * functions/[[path]].js
- * Cloudflare Pages Function — routes dynamic paths to Worker handlers.
+ * Cloudflare Pages Function
  *
- * Required bindings in Pages → Settings → Bindings:
+ * Bindings needed in Pages → Settings → Bindings:
  *   R2  → BUCKET → crestoniowa
  *   D1  → DB     → creston-auth
  *
- * Required environment variables in Pages → Settings → Environment Variables:
- *   ADMIN_TOKEN    → random string (same as Worker secret)
- *   RESEND_API_KEY → from resend.com
- *   CONTACT_EMAIL  → hello@creston-iowa.com
- *   CONTACT_FROM   → contact@creston-iowa.com
+ * Environment variables:
+ *   ADMIN_TOKEN    RESEND_API_KEY
+ *   CONTACT_EMAIL  CONTACT_FROM
  */
 
 import { handleJobs }        from '../creston-worker/src/handlers/jobs.js';
@@ -20,6 +18,8 @@ import { handleAttractions } from '../creston-worker/src/handlers/attractions.js
 import { handleAdmin }       from '../creston-worker/src/handlers/admin.js';
 import { handleApi }         from '../creston-worker/src/handlers/api.js';
 import { handleContact }     from '../creston-worker/src/handlers/contact.js';
+import { handleSettings }    from '../creston-worker/src/handlers/settings.js';
+import { getAuthUser }       from '../creston-worker/src/db/auth-d1.js';
 
 export async function onRequest(context) {
   const { request, env } = context;
@@ -38,13 +38,20 @@ export async function onRequest(context) {
   }
 
   try {
-    if (path.startsWith('/api/'))        return await handleApi(request, env, url);
-    if (path.startsWith('/admin'))       return await handleAdmin(request, env, url);
-    if (path.startsWith('/contact'))     return await handleContact(request, env, url);
-    if (path.startsWith('/jobs'))        return await handleJobs(request, env, url);
-    if (path.startsWith('/food'))        return await handleFood(request, env, url);
-    if (path.startsWith('/news'))        return await handleNews(request, env, url);
-    if (path.startsWith('/attractions')) return await handleAttractions(request, env, url);
+    if (path.startsWith('/api/'))           return await handleApi(request, env, url);
+
+    if (path.startsWith('/admin/settings')) {
+      const user = await getAuthUser(request, env);
+      if (!user) return new Response(null, { status: 302, headers: { Location: '/admin/login' } });
+      return await handleSettings(request, env, url, user);
+    }
+
+    if (path.startsWith('/admin'))          return await handleAdmin(request, env, url);
+    if (path.startsWith('/contact'))        return await handleContact(request, env, url);
+    if (path.startsWith('/jobs'))           return await handleJobs(request, env, url);
+    if (path.startsWith('/food'))           return await handleFood(request, env, url);
+    if (path.startsWith('/news'))           return await handleNews(request, env, url);
+    if (path.startsWith('/attractions'))    return await handleAttractions(request, env, url);
 
     return context.next();
   } catch (err) {
