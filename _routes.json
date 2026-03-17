@@ -9,6 +9,8 @@
     "/news/*",
     "/attractions",
     "/attractions/*",
+    "/contact",
+    "/contact/*",
     "/admin",
     "/admin/*",
     "/api/*"

@@ -9,11 +9,12 @@ routes = [
   { pattern = "creston-iowa.com/food*",        zone_name = "creston-iowa.com" },
   { pattern = "creston-iowa.com/news*",        zone_name = "creston-iowa.com" },
   { pattern = "creston-iowa.com/attractions*", zone_name = "creston-iowa.com" },
+  { pattern = "creston-iowa.com/contact*",     zone_name = "creston-iowa.com" },
   { pattern = "creston-iowa.com/admin*",       zone_name = "creston-iowa.com" },
   { pattern = "creston-iowa.com/api/*",        zone_name = "creston-iowa.com" },
 ]
 
-# R2 bucket binding
+# R2 bucket
 [[r2_buckets]]
 binding = "BUCKET"
 bucket_name = "crestoniowa"
@@ -23,21 +24,15 @@ bucket_name = "crestoniowa"
 [[d1_databases]]
 binding       = "DB"
 database_name = "creston-auth"
-database_id   = "601a8f88-100a-4a55-b723-083782d4efd2"
+database_id   = "REPLACE_WITH_YOUR_D1_ID"
 
-# Environment variables (non-secret)
+# Non-secret environment variables
 [vars]
-SITE_NAME = "Creston, Iowa"
-SITE_URL  = "https://creston-iowa.com"
+SITE_NAME     = "Creston, Iowa"
+SITE_URL      = "https://creston-iowa.com"
+CONTACT_EMAIL = "hello@creston-iowa.com"
+CONTACT_FROM  = "contact@creston-iowa.com"
 
-# Secrets — set these via: wrangler secret put ADMIN_PASSWORD
-# ADMIN_PASSWORD  (hashed bcrypt or plain for now)
-# ADMIN_TOKEN     (random string for API auth)
-
-# ── Local dev ──────────────────────────────────────────────
-# Run locally with: npx wrangler dev
-# Uses a local R2 simulator — no real bucket needed for dev
-
-[[env.preview.r2_buckets]]
-binding = "BUCKET"
-bucket_name = "crestoniowa-preview"
+# Secrets — set via: npx wrangler secret put <NAME>
+#   ADMIN_TOKEN     — random string for API Bearer auth
+#   RESEND_API_KEY  — from resend.com dashboard
