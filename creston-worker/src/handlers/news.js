@@ -54,13 +54,14 @@ async function renderNewsList(request, env) {
       </div>
     </section>`;
 
-  return htmlResponse(renderShell({
+  return htmlResponse(await renderShell({
     title:       'News & Updates',
     description: 'Community news, events, and announcements from Creston and Union County, Iowa.',
     eyebrow:     '📰 Local News',
     heading:     'Creston News & Updates',
     subheading:  'Community news, events, and announcements from Creston and Union County, Iowa.',
     activeNav:   'News',
+    env,
     content,
   }));
 }
@@ -103,13 +104,14 @@ async function renderNewsDetail(request, env, slug) {
       </div>
     </section>`;
 
-  return htmlResponse(renderShell({
+  return htmlResponse(await renderShell({
     title:       m.title || article.slug,
     description: m.summary || m.title || '',
     eyebrow:     `📰 ${m.category || 'News'}`,
     heading:     m.title || article.slug,
     subheading:  m.summary || '',
     activeNav:   'News',
+    env,
     content,
   }));
 }

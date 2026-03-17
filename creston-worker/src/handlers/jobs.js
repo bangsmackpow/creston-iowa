@@ -23,7 +23,7 @@ export async function handleJobs(request, env, url) {
 
 // ── Job Listing Page ─────────────────────────────────────────
 async function renderJobList(request, env) {
-  const jobs = await listContent(env, 'jobs/active/');
+  const jobs = await listContent(env, 'jobs/active');
 
   // Filter out truly expired ones (past expires date)
   const active = jobs.filter(j => !isExpired(j.meta));
@@ -104,13 +104,14 @@ async function renderJobList(request, env) {
       typeSelect.addEventListener('change', applyFilters);
     </script>`;
 
-  return htmlResponse(renderShell({
+  return htmlResponse(await renderShell({
     title:      'Job Board',
     description: `Find jobs in Creston, Iowa and Union County. ${active.length} open positions.`,
     eyebrow:    '💼 Local Opportunities',
     heading:    'Creston Job Board',
     subheading: 'Connecting Creston-area employers with local talent. Live and work in Union County.',
     activeNav:  'Jobs',
+    env,
     content,
   }));
 }
@@ -190,13 +191,14 @@ async function renderJobDetail(request, env, slug) {
       </div>
     </section>`;
 
-  return htmlResponse(renderShell({
+  return htmlResponse(await renderShell({
     title:      m.title || job.slug,
     description: `${m.title} at ${m.company} in ${m.location || 'Creston, IA'}. ${m.type || ''} position.`,
     eyebrow:    '💼 Job Listing',
     heading:    m.title || job.slug,
     subheading: `${m.company || ''} · ${m.location || 'Creston, IA'}`,
     activeNav:  'Jobs',
+    env,
     content,
   }));
 }

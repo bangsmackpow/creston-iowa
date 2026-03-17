@@ -67,13 +67,14 @@ async function renderFoodList(request, env) {
       });
     </script>`;
 
-  return htmlResponse(renderShell({
+  return htmlResponse(await renderShell({
     title:       'Dining & Restaurants',
     description: `Creston Iowa restaurant guide — ${items.length} local restaurants and eateries in Union County.`,
     eyebrow:     '🍽️ Eat & Drink',
     heading:     'Dining in Creston',
     subheading:  'From chophouses and cantinas to espresso bars and craft breweries.',
     activeNav:   'Dining',
+    env,
     content,
   }));
 }
@@ -126,13 +127,14 @@ async function renderFoodDetail(request, env, slug) {
       </div>
     </section>`;
 
-  return htmlResponse(renderShell({
+  return htmlResponse(await renderShell({
     title:       m.name || item.slug,
     description: `${m.name} — ${m.category || 'restaurant'} in Creston, Iowa. ${m.address || ''}`,
     eyebrow:     '🍽️ Restaurant',
     heading:     m.name || item.slug,
     subheading:  `${m.category || ''}${m.address ? ' · ' + m.address : ''}`,
     activeNav:   'Dining',
+    env,
     content,
   }));
 }

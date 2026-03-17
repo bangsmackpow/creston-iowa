@@ -29,13 +29,14 @@ async function renderAttractionList(request, env) {
       </div>
     </section>`;
 
-  return htmlResponse(renderShell({
+  return htmlResponse(await renderShell({
     title:       'Attractions & Things To Do',
     description: 'Things to do in Creston, Iowa — Balloon Days, lakes, murals, the CB&Q Depot, historical village, trails, and more.',
     eyebrow:     '🎈 Explore Creston',
     heading:     'Things To Do',
     subheading:  'Outdoor adventures, rich railroad heritage, vibrant arts, and Iowa\'s best balloon festival.',
     activeNav:   'Attractions',
+    env,
     content,
   }));
 }
@@ -72,13 +73,14 @@ async function renderAttractionDetail(request, env, slug) {
       </div>
     </section>`;
 
-  return htmlResponse(renderShell({
+  return htmlResponse(await renderShell({
     title:       m.name || item.slug,
     description: m.tagline || m.name || '',
     eyebrow:     `🎈 ${m.category || 'Attraction'}`,
     heading:     m.name || item.slug,
     subheading:  m.tagline || '',
     activeNav:   'Attractions',
+    env,
     content,
   }));
 }
