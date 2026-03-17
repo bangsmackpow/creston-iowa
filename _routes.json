@@ -1,6 +1,13 @@
 {
   "version": 1,
   "include": [
+    "/sitemap.xml",
+    "/media/*",
+    "/api/*",
+    "/admin",
+    "/admin/*",
+    "/contact",
+    "/contact/*",
     "/jobs",
     "/jobs/*",
     "/food",
@@ -9,11 +16,16 @@
     "/news/*",
     "/attractions",
     "/attractions/*",
-    "/contact",
-    "/contact/*",
-    "/admin",
-    "/admin/*",
-    "/api/*"
+    "/about",
+    "/government",
+    "/chamber",
+    "/advertise"
   ],
-  "exclude": []
+  "exclude": [
+    "/css/*",
+    "/js/*",
+    "/images/*",
+    "/index.html",
+    "/pages/*.html"
+  ]
 }

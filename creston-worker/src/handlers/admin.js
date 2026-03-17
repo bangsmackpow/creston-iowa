@@ -3,6 +3,7 @@
  */
 
 import { getAuthUser, createUserSession, destroySession } from '../db/auth-d1.js';
+import { listPages, getPageTemplate, MIGRATION_PAGES } from './pages.js';
 import { getUserByEmail, getAllUsers, createUser, updateUserPassword, updateUserActive,
          getAllCompanies, createCompany, getCompanyById, updateCompany,
          createInvite, getPendingInvites, getInvite, markInviteUsed } from '../db/d1.js';
@@ -20,6 +21,8 @@ export async function handleAdmin(request, env, url) {
   if (!user) return new Response(null, { status: 302, headers: { Location: '/admin/login' } });
 
   if (path === '/admin' || path === '/admin/')    return renderDashboard(env, user);
+  if (path.startsWith('/admin/pages'))            return handlePages(request, env, url, user);
+  if (path.startsWith('/admin/media'))            return handleMediaAdmin(request, env, url, user);
   if (path.startsWith('/admin/users'))            return handleUsers(request, env, url, user);
   if (path.startsWith('/admin/companies'))        return handleCompanies(request, env, url, user);
   if (path.startsWith('/admin/account'))          return handleAccount(request, env, url, user);
@@ -116,14 +119,16 @@ async function renderDashboard(env, user) {
   let statsHtml = '';
 
   if (sup) {
-    const [jobs, food, news, attr, cos, us] = await Promise.all([
+    const [jobs, food, news, attr, cos, us, pgs] = await Promise.all([
       env.BUCKET.list({ prefix: 'jobs/active/' }),
       env.BUCKET.list({ prefix: 'food/' }),
       env.BUCKET.list({ prefix: 'news/' }),
       env.BUCKET.list({ prefix: 'attractions/' }),
       getAllCompanies(env.DB),
       getAllUsers(env.DB),
+      env.BUCKET.list({ prefix: 'pages/' }),
     ]);
+    const pagesCount = (pgs.objects || []).filter(o => o.key.endsWith('.md')).length;
     statsHtml = statGrid([
       { href:'/admin/jobs',        icon:'💼', num: countMd(jobs),   label:'Active Jobs' },
       { href:'/admin/food',        icon:'🍽️', num: countMd(food),   label:'Restaurants' },
@@ -131,6 +136,7 @@ async function renderDashboard(env, user) {
       { href:'/admin/attractions', icon:'🎈', num: countMd(attr),   label:'Attractions' },
       { href:'/admin/companies',   icon:'🏢', num: (cos.results||[]).length, label:'Companies' },
       { href:'/admin/users',       icon:'👥', num: (us.results||[]).length,  label:'Users' },
+      { href:'/admin/pages',       icon:'📄', num: pagesCount,                     label:'Pages' },
     ]);
   } else {
     const prefix = `jobs/active/${user.company_slug || 'default'}/`;
@@ -150,6 +156,8 @@ async function renderDashboard(env, user) {
     <a href="/admin/attractions/new" class="action-btn btn-attr">+ Add Attraction</a>
     <a href="/admin/companies/new"   class="action-btn" style="background:#6a3a7a;">+ New Company</a>
     <a href="/admin/users/new"       class="action-btn" style="background:#2e4163;">+ Invite User</a>
+    <a href="/admin/pages/new"        class="action-btn" style="background:#2a5a7a;">📄 New Page</a>
+    <a href="/admin/media"            class="action-btn" style="background:#5a3a7a;">🖼️ Media Library</a>
     <a href="/admin/settings"        class="action-btn" style="background:#444444;">⚙️ Site Settings</a>` : `
     <a href="/admin/jobs/new" class="action-btn btn-jobs">+ Post a Job</a>
     <a href="/admin/account"  class="action-btn" style="background:#2e4163;">⚙️ My Account</a>`;
@@ -755,6 +763,8 @@ function adminPage(title, body, user) {
       <a href="/admin/attractions">🎈 Attractions</a>
       <a href="/admin/companies">🏢 Companies</a>
       <a href="/admin/users">👥 Users</a>
+      <a href="/admin/pages">📄 Pages</a>
+      <a href="/admin/media">🖼️ Media</a>
       <a href="/admin/settings">⚙️ Settings</a>` : ''}
     </nav>
     <div class="admin-header-right">
@@ -822,4 +832,493 @@ function statGrid(items) {
       <div class="stat-label">${i.label}</div>
       ${i.sub ? `<div class="stat-sub">${i.sub}</div>` : ''}
     </a>`).join('')}</div>`;
+}
+
+// ── Pages Management ───────────────────────────────────────────
+async function handlePages(request, env, url, user) {
+  if (user.role === 'company_admin') return new Response('Forbidden', { status: 403 });
+  const path  = url.pathname;
+  const parts = path.replace('/admin/pages', '').replace(/^\//, '').split('/');
+  const slug  = parts[0];
+  const action = parts[1];
+
+  if (path === '/admin/pages/new') {
+    if (request.method === 'POST') return processNewPage(request, env);
+    return renderPageEditor(env, null, user);
+  }
+
+  if (path === '/admin/pages/migrate') {
+    return migrateLegacyPages(env, user);
+  }
+
+  if (slug && action === 'edit') {
+    if (request.method === 'POST') return processEditPage(request, env, slug);
+    return renderPageEditor(env, slug, user);
+  }
+
+  if (slug && action === 'delete' && request.method === 'POST') {
+    await env.BUCKET.delete(`pages/${slug}.md`);
+    return new Response(null, { status: 302, headers: { Location: '/admin/pages' } });
+  }
+
+  // List pages
+  const pages = await listPages(env);
+
+  const rows = pages.map(p => `
+    <tr>
+      <td>
+        <strong>${escapeHtml(p.meta.title || p.slug)}</strong>
+        ${p.meta.published === 'false' || p.meta.published === false ? '<span class="badge-expired">draft</span>' : ''}
+      </td>
+      <td><code style="font-size:.8rem;">/${escapeHtml(p.slug)}</code></td>
+      <td>${p.meta.show_in_nav === 'true' || p.meta.show_in_nav === true ? '✅' : '—'}</td>
+      <td>${p.modified ? new Date(p.modified).toLocaleDateString() : '—'}</td>
+      <td class="action-col">
+        <a href="/admin/pages/${p.slug}/edit" class="tbl-btn">Edit</a>
+        <a href="/${p.slug}" target="_blank" class="tbl-btn tbl-btn-view">View</a>
+        <form method="POST" action="/admin/pages/${p.slug}/delete" style="display:inline;"
+              onsubmit="return confirm('Delete this page permanently?')">
+          <button type="submit" class="tbl-btn tbl-btn-danger">Delete</button>
+        </form>
+      </td>
+    </tr>`).join('');
+
+  const hasMigrations = !pages.find(p => p.slug === 'about');
+
+  return adminPage('📄 Pages', `
+    <div class="list-header">
+      <h2>Pages (${pages.length})</h2>
+      <div style="display:flex;gap:10px;">
+        ${hasMigrations ? `<a href="/admin/pages/migrate" class="btn-admin-secondary">↩ Migrate Legacy Pages</a>` : ''}
+        <a href="/admin/pages/new" class="btn-admin-primary">+ New Page</a>
+      </div>
+    </div>
+    <table class="admin-table">
+      <thead><tr><th>Title</th><th>URL</th><th>In Nav</th><th>Updated</th><th>Actions</th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="5" style="text-align:center;color:#888;padding:32px;">No pages yet. <a href="/admin/pages/new">Create one →</a></td></tr>'}</tbody>
+    </table>
+  `, user);
+}
+
+async function renderPageEditor(env, slug, user) {
+  let existingContent = '';
+  if (slug) {
+    const file = await env.BUCKET.get(`pages/${slug}.md`);
+    if (file) existingContent = await file.text();
+  }
+
+  const tpl    = slug ? existingContent : getPageTemplate();
+  const isEdit = !!slug;
+
+  return adminPage(isEdit ? `Edit Page: ${slug}` : 'New Page', `
+    <div class="editor-header">
+      <a href="/admin/pages" class="back-link">← Back to Pages</a>
+      <h2>📄 ${isEdit ? `Edit: ${escapeHtml(slug)}` : 'New Page'}</h2>
+    </div>
+    <div class="editor-layout">
+      <div class="editor-main">
+        <div class="form-row">
+          <label class="form-label">Slug (URL path — no spaces)</label>
+          <input type="text" id="slug-input" class="form-input"
+                 value="${escapeHtml(slug || '')}" placeholder="about"
+                 ${isEdit ? 'readonly style="background:#f5f5f5;color:#888;"' : ''}>
+          ${!isEdit ? `<small style="color:#888;font-family:sans-serif;font-size:.76rem;margin-top:4px;display:block;">
+            URL will be: /<span id="slug-preview">your-slug</span>
+          </small>` : ''}
+        </div>
+        <div class="editor-toolbar">
+          <button type="button" onclick="ins('**','**')"><strong>B</strong></button>
+          <button type="button" onclick="ins('*','*')"><em>I</em></button>
+          <button type="button" onclick="ins('## ','')">H2</button>
+          <button type="button" onclick="ins('### ','')">H3</button>
+          <button type="button" onclick="ins('- ','')">• List</button>
+          <button type="button" onclick="ins('[text](',')')">🔗 Link</button>
+          <button type="button" onclick="openMediaPicker()">🖼️ Image</button>
+          <span class="toolbar-sep"></span>
+          <button type="button" onclick="resetTpl()" style="color:#c9933a;">↺ Template</button>
+        </div>
+        <textarea id="md-editor" class="md-editor" spellcheck="true">${escapeHtml(tpl)}</textarea>
+        <div class="editor-actions">
+          <button onclick="savePage()" class="btn-admin-primary btn-save">
+            ${isEdit ? '💾 Save Changes' : '🚀 Publish Page'}
+          </button>
+          ${isEdit ? `<a href="/${escapeHtml(slug)}" target="_blank" class="btn-admin-secondary">🔗 View Live</a>` : ''}
+        </div>
+        <div id="status" style="margin-top:12px;font-family:sans-serif;font-size:.9rem;min-height:1.4em;"></div>
+      </div>
+      <div class="editor-sidebar">
+        <div class="preview-panel">
+          <div class="preview-header">Preview</div>
+          <div id="preview" class="preview-body markdown-body"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Media Picker Modal -->
+    <div id="media-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;align-items:center;justify-content:center;">
+      <div style="background:white;border-radius:14px;width:90%;max-width:800px;max-height:80vh;overflow:hidden;display:flex;flex-direction:column;">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid #eee;">
+          <h3 style="margin:0;font-family:sans-serif;font-size:1rem;">🖼️ Media Library</h3>
+          <button onclick="closeMediaPicker()" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:#888;">✕</button>
+        </div>
+        <div style="padding:16px 20px;border-bottom:1px solid #eee;display:flex;gap:10px;align-items:center;">
+          <input type="file" id="media-upload-input" accept="image/*,application/pdf" style="flex:1;">
+          <button onclick="uploadMedia()" class="btn-admin-primary" style="flex-shrink:0;">Upload</button>
+          <div id="upload-status" style="font-size:.82rem;font-family:sans-serif;color:#888;"></div>
+        </div>
+        <div id="media-grid" style="padding:16px 20px;overflow-y:auto;flex:1;display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px;">
+          <div style="color:#888;font-family:sans-serif;font-size:.85rem;grid-column:1/-1;text-align:center;padding:20px;">Loading...</div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const TOKEN = sessionStorage.getItem('admin_token') || '';
+      const IS_EDIT = ${isEdit};
+      const ORIG_SLUG = '${escapeHtml(slug || '')}';
+      const TPL = ${JSON.stringify(tpl)};
+      const ed = document.getElementById('md-editor');
+      const prev = document.getElementById('preview');
+      const si = document.getElementById('slug-input');
+      const sp = document.getElementById('slug-preview');
+      const st = document.getElementById('status');
+
+      ed.addEventListener('input', render); render();
+      if (si && sp) si.addEventListener('input', () => { sp.textContent = si.value.toLowerCase().replace(/[^a-z0-9-]/g,'-') || 'your-slug'; });
+
+      function render() {
+        let h = ed.value
+          .replace(/^### (.+)$/gm,'<h3>$1</h3>').replace(/^## (.+)$/gm,'<h2>$1</h2>').replace(/^# (.+)$/gm,'<h1>$1</h1>')
+          .replace(/\\*\\*(.+?)\\*\\*/g,'<strong>$1</strong>').replace(/\\*(.+?)\\*/g,'<em>$1</em>')
+          .replace(/^---[\\s\\S]*?---\\n?/,'<div class="frontmatter-notice">📋 Frontmatter</div>\\n')
+          .replace(/^- (.+)$/gm,'<li>$1</li>')
+          .split('\\n\\n').map(b=>{b=b.trim();if(!b)return'';if(/^<(h[1-6]|ul|li|div)/.test(b))return b;return'<p>'+b.replace(/\\n/g,'<br>')+'</p>';}).join('\\n');
+        prev.innerHTML = h;
+      }
+
+      function ins(a,b) {
+        const s=ed.selectionStart,e=ed.selectionEnd,sel=ed.value.slice(s,e);
+        ed.value=ed.value.slice(0,s)+a+sel+b+ed.value.slice(e);
+        ed.selectionStart=s+a.length; ed.selectionEnd=e+a.length; ed.focus(); render();
+      }
+
+      function resetTpl() { if(confirm('Reset to template?')) { ed.value=TPL; render(); } }
+
+      async function savePage() {
+        const slug = si ? si.value.trim() : ORIG_SLUG;
+        const content = ed.value.trim();
+        if (!slug) { alert('Enter a slug.'); return; }
+        if (!content) { alert('Content is empty.'); return; }
+        if (!TOKEN) { alert('Session expired.'); return; }
+
+        st.textContent = '⏳ Saving...'; st.style.color = '#888';
+        const method = IS_EDIT ? 'PUT' : 'POST';
+        const apiUrl = IS_EDIT ? '/api/content/pages/' + ORIG_SLUG : '/api/content/pages';
+        const body   = IS_EDIT ? { content } : { slug, content };
+
+        try {
+          const r = await fetch(apiUrl, {
+            method,
+            headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+TOKEN },
+            body: JSON.stringify(body),
+          });
+          if (r.ok) {
+            st.textContent = IS_EDIT ? '✅ Saved!' : '🚀 Published!';
+            st.style.color = '#2d5a3d';
+            if (!IS_EDIT) setTimeout(() => { window.location.href = '/admin/pages'; }, 1400);
+          } else {
+            let m = r.status; try { const j=await r.json(); m=j.error||m; } catch {}
+            st.textContent = '❌ Error: '+m; st.style.color = '#b84040';
+          }
+        } catch(e) { st.textContent = '❌ '+e.message; st.style.color = '#b84040'; }
+      }
+
+      ed.addEventListener('keydown', e => { if((e.metaKey||e.ctrlKey)&&e.key==='s'){e.preventDefault();savePage();} });
+
+      // ── Media Picker ───────────────────────────────────────
+      function openMediaPicker() {
+        document.getElementById('media-modal').style.display = 'flex';
+        loadMediaGrid();
+      }
+      function closeMediaPicker() {
+        document.getElementById('media-modal').style.display = 'none';
+      }
+
+      async function loadMediaGrid() {
+        const grid = document.getElementById('media-grid');
+        grid.innerHTML = '<div style="color:#888;font-family:sans-serif;font-size:.85rem;grid-column:1/-1;text-align:center;padding:20px;">Loading...</div>';
+        try {
+          const r = await fetch('/api/media/list?folder=images', {
+            headers: { 'Authorization': 'Bearer '+TOKEN }
+          });
+          const data = await r.json();
+          if (!data.files || data.files.length === 0) {
+            grid.innerHTML = '<div style="color:#888;font-family:sans-serif;font-size:.85rem;grid-column:1/-1;text-align:center;padding:20px;">No images yet. Upload one above.</div>';
+            return;
+          }
+          grid.innerHTML = data.files.map(f => \`
+            <div onclick="insertImage('${f.url}','${f.name}')"
+                 style="cursor:pointer;border:2px solid #eee;border-radius:8px;overflow:hidden;transition:border-color .15s;"
+                 onmouseover="this.style.borderColor='#2d5a3d'" onmouseout="this.style.borderColor='#eee'">
+              <img src="\${f.url}" alt="\${f.name}"
+                   style="width:100%;height:80px;object-fit:cover;display:block;">
+              <div style="padding:4px 6px;font-family:sans-serif;font-size:.68rem;color:#666;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
+                   title="\${f.name}">\${f.name}</div>
+            </div>
+          \`).join('');
+        } catch(e) {
+          grid.innerHTML = '<div style="color:#b84040;font-family:sans-serif;font-size:.85rem;grid-column:1/-1;text-align:center;">Error loading media: '+e.message+'</div>';
+        }
+      }
+
+      function insertImage(url, name) {
+        const altText = name.replace(/\\.[^.]+$/, '').replace(/-/g, ' ');
+        ins('!['+altText+']('+url+')', '');
+        closeMediaPicker();
+      }
+
+      async function uploadMedia() {
+        const input  = document.getElementById('media-upload-input');
+        const status = document.getElementById('upload-status');
+        if (!input.files.length) { alert('Select a file first.'); return; }
+
+        const fd = new FormData();
+        fd.append('file', input.files[0]);
+        fd.append('folder', 'images');
+
+        status.textContent = '⏳ Uploading...';
+        try {
+          const r = await fetch('/api/media/upload', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer '+TOKEN },
+            body: fd,
+          });
+          const data = await r.json();
+          if (data.ok) {
+            status.textContent = '✅ Uploaded!';
+            input.value = '';
+            loadMediaGrid();
+          } else {
+            status.textContent = '❌ '+data.error;
+          }
+        } catch(e) { status.textContent = '❌ '+e.message; }
+      }
+    </script>
+  `, user);
+}
+
+async function processNewPage(request, env) {
+  const body = await request.json().catch(() => null)
+    || Object.fromEntries(await request.formData().catch(() => new FormData()));
+  if (!body?.slug || !body?.content) return new Response('Missing slug or content', { status: 400 });
+
+  const key = `pages/${sanitizeSlug(body.slug)}.md`;
+  await env.BUCKET.put(key, body.content, {
+    httpMetadata: { contentType: 'text/markdown; charset=utf-8' }
+  });
+  return new Response(JSON.stringify({ ok: true, key }), {
+    headers: { 'Content-Type': 'application/json' }
+  });
+}
+
+async function processEditPage(request, env, slug) {
+  const body = await request.json().catch(() => null);
+  if (!body?.content) return new Response('Missing content', { status: 400 });
+
+  const key = `pages/${sanitizeSlug(slug)}.md`;
+  await env.BUCKET.put(key, body.content, {
+    httpMetadata: { contentType: 'text/markdown; charset=utf-8' }
+  });
+  return new Response(JSON.stringify({ ok: true }), {
+    headers: { 'Content-Type': 'application/json' }
+  });
+}
+
+async function migrateLegacyPages(env, user) {
+  const results = [];
+  for (const [slug, page] of Object.entries(MIGRATION_PAGES)) {
+    const content = page.meta + '\n' + page.body;
+    const key     = `pages/${slug}.md`;
+    const exists  = await env.BUCKET.head(key);
+    if (!exists) {
+      await env.BUCKET.put(key, content, {
+        httpMetadata: { contentType: 'text/markdown; charset=utf-8' }
+      });
+      results.push({ slug, status: 'created' });
+    } else {
+      results.push({ slug, status: 'skipped (already exists)' });
+    }
+  }
+
+  const rows = results.map(r => `
+    <tr>
+      <td>${escapeHtml(r.slug)}</td>
+      <td><span class="${r.status.startsWith('created') ? 'tbl-btn tbl-btn-ok' : 'tbl-btn'}">${escapeHtml(r.status)}</span></td>
+      <td>${r.status.startsWith('created') ? `<a href="/${r.slug}" target="_blank" class="tbl-btn tbl-btn-view">View →</a>` : ''}</td>
+    </tr>`).join('');
+
+  return adminPage('↩ Migrate Pages', `
+    <div class="editor-header">
+      <a href="/admin/pages" class="back-link">← Back to Pages</a>
+      <h2>Legacy Page Migration</h2>
+    </div>
+    <div class="alert-box alert-ok" style="margin-bottom:20px;">
+      ✅ Migration complete! ${results.filter(r=>r.status==='created').length} pages created in R2.
+    </div>
+    <table class="admin-table">
+      <thead><tr><th>Page</th><th>Result</th><th>Link</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <p style="font-family:sans-serif;font-size:.85rem;color:#888;margin-top:16px;">
+      These pages are now editable from <a href="/admin/pages">Admin → Pages</a>.
+      The old static HTML files in /pages/ are still there as fallback — you can remove them once you've verified the new pages look correct.
+    </p>
+    <a href="/admin/pages" class="btn-admin-primary" style="margin-top:16px;">← Back to Pages</a>
+  `, user);
+}
+
+// ── Media Admin UI ─────────────────────────────────────────────
+async function handleMediaAdmin(request, env, url, user) {
+  if (user.role === 'company_admin') return new Response('Forbidden', { status: 403 });
+
+  return adminPage('🖼️ Media Library', `
+    <div class="list-header">
+      <h2>Media Library</h2>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <input type="file" id="upload-input" accept="image/*,application/pdf" multiple>
+        <button onclick="uploadFiles()" class="btn-admin-primary">Upload</button>
+        <div id="upload-status" style="font-size:.82rem;font-family:sans-serif;color:#888;"></div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-bottom:20px;align-items:center;flex-wrap:wrap;">
+      <select id="folder-select" class="form-select" style="width:auto;" onchange="loadMedia()">
+        <option value="images">Images</option>
+        <option value="docs">Documents</option>
+      </select>
+      <div id="media-count" style="font-family:sans-serif;font-size:.82rem;color:#888;"></div>
+    </div>
+
+    <div id="media-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:16px;">
+      <div style="grid-column:1/-1;text-align:center;padding:40px;color:#888;font-family:sans-serif;">Loading...</div>
+    </div>
+
+    <script>
+      const TOKEN = sessionStorage.getItem('admin_token') || '';
+
+      async function loadMedia() {
+        const folder = document.getElementById('folder-select').value;
+        const grid   = document.getElementById('media-grid');
+        const count  = document.getElementById('media-count');
+        grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:#888;font-family:sans-serif;">Loading...</div>';
+
+        try {
+          const r    = await fetch('/api/media/list?folder='+folder, { headers: { 'Authorization':'Bearer '+TOKEN } });
+          const data = await r.json();
+
+          if (!data.files || data.files.length === 0) {
+            grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:#888;font-family:sans-serif;">No files yet. Upload one above.</div>';
+            count.textContent = '0 files';
+            return;
+          }
+
+          count.textContent = data.files.length + ' file' + (data.files.length === 1 ? '' : 's');
+          grid.innerHTML = data.files.map(f => {
+            const isImage = f.contentType.startsWith('image/');
+            return \`
+              <div class="media-card" data-key="\${f.key}">
+                <div class="media-thumb">
+                  \${isImage
+                    ? \`<img src="\${f.url}" alt="\${f.name}" style="width:100%;height:100%;object-fit:cover;">\`
+                    : \`<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem;background:#f5f5f5;">📄</div>\`
+                  }
+                </div>
+                <div class="media-info">
+                  <div class="media-name" title="\${f.name}">\${f.name}</div>
+                  <div class="media-size">\${formatSize(f.size)}</div>
+                </div>
+                <div class="media-actions">
+                  <button onclick="copyUrl('\${f.url}')" class="tbl-btn" title="Copy URL">📋</button>
+                  <a href="\${f.url}" target="_blank" class="tbl-btn tbl-btn-view" title="View">👁</a>
+                  <button onclick="deleteMedia('\${f.key}')" class="tbl-btn tbl-btn-danger" title="Delete">🗑</button>
+                </div>
+              </div>
+            \`;
+          }).join('');
+
+        } catch(e) {
+          grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:#b84040;font-family:sans-serif;">Error: '+e.message+'</div>';
+        }
+      }
+
+      async function uploadFiles() {
+        const input  = document.getElementById('upload-input');
+        const status = document.getElementById('upload-status');
+        const folder = document.getElementById('folder-select').value;
+        if (!input.files.length) { alert('Select files to upload.'); return; }
+
+        let uploaded = 0;
+        status.textContent = '⏳ Uploading '+input.files.length+' file(s)...';
+
+        for (const file of input.files) {
+          const fd = new FormData();
+          fd.append('file', file);
+          fd.append('folder', folder);
+          try {
+            const r = await fetch('/api/media/upload', {
+              method: 'POST',
+              headers: { 'Authorization': 'Bearer '+TOKEN },
+              body: fd,
+            });
+            const d = await r.json();
+            if (d.ok) uploaded++;
+          } catch(e) { console.error('Upload error:', e); }
+        }
+
+        status.textContent = '✅ Uploaded '+uploaded+' file(s)';
+        input.value = '';
+        loadMedia();
+      }
+
+      async function deleteMedia(key) {
+        if (!confirm('Delete this file permanently?')) return;
+        const r = await fetch('/api/media/delete', {
+          method: 'DELETE',
+          headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+TOKEN },
+          body: JSON.stringify({ key }),
+        });
+        if (r.ok) loadMedia(); else alert('Delete failed');
+      }
+
+      function copyUrl(url) {
+        navigator.clipboard.writeText(window.location.origin + url)
+          .then(() => alert('URL copied to clipboard!'))
+          .catch(() => prompt('Copy this URL:', window.location.origin + url));
+      }
+
+      function formatSize(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+        return (bytes/1024/1024).toFixed(1) + ' MB';
+      }
+
+      loadMedia();
+    </script>
+
+    <style>
+      .media-card {
+        background: white;
+        border: 1.5px solid #e0e0e0;
+        border-radius: 10px;
+        overflow: hidden;
+        transition: border-color .15s, box-shadow .15s;
+      }
+      .media-card:hover { border-color: #2d5a3d; box-shadow: 0 4px 12px rgba(0,0,0,.1); }
+      .media-thumb { height: 120px; overflow: hidden; }
+      .media-info { padding: 8px 10px; }
+      .media-name { font-family: sans-serif; font-size: .78rem; font-weight: 600; color: #333; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .media-size { font-family: sans-serif; font-size: .68rem; color: #999; margin-top: 2px; }
+      .media-actions { display: flex; gap: 4px; padding: 6px 8px; border-top: 1px solid #f0f0f0; }
+    </style>
+  `, user);
 }
