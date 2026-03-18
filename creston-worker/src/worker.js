@@ -36,6 +36,23 @@ export default {
       // ── Sitemap ──────────────────────────────────────────
       if (path === '/sitemap.xml') return await handleSitemap(request, env);
 
+      // ── Theme CSS — served from R2, regenerated on settings save ────
+      if (path === '/css/theme.css') {
+        const file = await env.BUCKET.get('config/theme.css');
+        if (file) {
+          return new Response(file.body, {
+            headers: {
+              'Content-Type':  'text/css; charset=utf-8',
+              'Cache-Control': 'public, max-age=0, must-revalidate',
+            }
+          });
+        }
+        // Fallback empty CSS if not generated yet
+        return new Response('/* theme not generated yet */', {
+          headers: { 'Content-Type': 'text/css; charset=utf-8' }
+        });
+      }
+
       // ── Media serving ─────────────────────────────────────
       if (path.startsWith('/media/')) return await handleMedia(request, env, url);
 

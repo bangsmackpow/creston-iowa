@@ -56,6 +56,10 @@ async function saveSettings(request, env) {
     const newConfig = mergeSettings(current, updates);
     await saveSiteConfig(env, newConfig);
 
+    // Write theme as a static CSS file to R2
+    // This means theme.js just loads a CSS file — no async fetch, no flash
+    await writeThemeCSS(env, newConfig);
+
     // Purge Cloudflare edge cache so theme/config changes show immediately
     await purgeCache(env);
 
@@ -68,6 +72,71 @@ async function saveSettings(request, env) {
       status: 500, headers: { 'Content-Type': 'application/json' }
     });
   }
+}
+
+async function writeThemeCSS(env, cfg) {
+  const { buildThemeCSS } = await import('../db/site.js');
+  const themeCSS = buildThemeCSS(cfg);
+
+  // Parse the CSS string into variables
+  const vars = {};
+  themeCSS.split(';').forEach(pair => {
+    const idx = pair.indexOf(':');
+    if (idx === -1) return;
+    vars[pair.slice(0, idx).trim()] = pair.slice(idx + 1).trim();
+  });
+
+  const primary     = vars['--primary']      || '#1a3a2a';
+  const secondary   = vars['--secondary']    || '#2d5a3d';
+  const accent      = vars['--accent']       || '#c9933a';
+  const accentLight = vars['--accent-light'] || '#f0c878';
+  const bg          = vars['--bg']           || '#faf8f3';
+  const rgb         = hexToRgb(primary);
+
+  const css = `/* Auto-generated theme — do not edit manually */
+/* Last updated: ${new Date().toISOString()} */
+:root {
+  --green-deep:  ${primary}     !important;
+  --green-mid:   ${secondary}   !important;
+  --gold:        ${accent}      !important;
+  --gold-light:  ${accentLight} !important;
+  --cream:       ${bg}          !important;
+  --navy:        ${primary}     !important;
+  --navy-mid:    ${secondary}   !important;
+}
+.site-nav { background: rgba(${rgb}, 0.97) !important; }
+.site-nav.scrolled { background: rgba(${rgb}, 0.99) !important; }
+.page-hero { background: ${primary} !important; }
+.bg-green-deep { background: ${primary} !important; }
+.site-footer { background: ${primary} !important; }
+.btn-primary { background: ${secondary} !important; border-color: ${secondary} !important; }
+.btn-primary:hover { background: ${primary} !important; border-color: ${primary} !important; }
+.btn-gold { background: ${accent} !important; border-color: ${accent} !important; }
+.eyebrow { color: ${accent} !important; }
+.nav-jobs { background: ${accent} !important; }
+.widget-header { background: ${primary} !important; }
+.filter-btn.active { background: ${secondary} !important; border-color: ${secondary} !important; }
+.admin-header { background: ${primary} !important; }
+h1, h2, h3, h4, h5 { color: ${primary} !important; }
+.page-hero h1, .hero-title, .about-strip h2, .jobs-promo h2 { color: white !important; }
+a { color: ${secondary}; }
+a:hover { color: ${accent}; }
+`;
+
+  await env.BUCKET.put('config/theme.css', css, {
+    httpMetadata: {
+      contentType: 'text/css; charset=utf-8',
+      cacheControl: 'public, max-age=0, must-revalidate',
+    }
+  });
+}
+
+function hexToRgb(hex) {
+  if (!hex) return '26,58,42';
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result
+    ? \`\${parseInt(result[1],16)},\${parseInt(result[2],16)},\${parseInt(result[3],16)}\`
+    : '26,58,42';
 }
 
 async function purgeCache(env) {

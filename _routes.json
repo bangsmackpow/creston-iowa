@@ -1,6 +1,7 @@
 {
   "version": 1,
   "include": [
+    "/css/theme.css",
     "/sitemap.xml",
     "/media/*",
     "/api/*",
@@ -22,10 +23,15 @@
     "/advertise"
   ],
   "exclude": [
-    "/css/*",
     "/js/*",
     "/images/*",
     "/index.html",
-    "/pages/*.html"
+    "/pages/*.html",
+    "/css/style.css",
+    "/css/home.css",
+    "/css/pages.css",
+    "/css/admin.css",
+    "/css/settings.css",
+    "/css/dynamic.css"
   ]
 }

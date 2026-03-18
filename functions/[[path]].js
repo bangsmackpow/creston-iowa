@@ -34,6 +34,15 @@ export async function onRequest(context) {
 
   try {
     if (path === '/sitemap.xml')                      return await handleSitemap(request, env);
+    if (path === '/css/theme.css') {
+      const file = await env.BUCKET.get('config/theme.css');
+      if (file) {
+        return new Response(file.body, {
+          headers: { 'Content-Type': 'text/css; charset=utf-8', 'Cache-Control': 'public, max-age=0, must-revalidate' }
+        });
+      }
+      return new Response('/* theme not generated yet */', { headers: { 'Content-Type': 'text/css; charset=utf-8' } });
+    }
     if (path.startsWith('/media/'))                   return await handleMedia(request, env, url);
     if (path === '/api/media/upload')                 return await handleMediaUpload(request, env);
     if (path === '/api/media/list')                   return await handleMediaList(request, env, url);

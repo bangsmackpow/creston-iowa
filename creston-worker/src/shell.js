@@ -51,6 +51,7 @@ export async function renderShell({
   <link rel="stylesheet" href="/css/style.css">
   <link rel="stylesheet" href="/css/pages.css">
   <link rel="stylesheet" href="/css/dynamic.css">
+  <link rel="stylesheet" href="/css/theme.css">
   <style>
     :root {
       --green-deep:   ${cssVar(themeCSS, '--primary',      '#1a3a2a')};
@@ -76,7 +77,6 @@ ${buildNav(navItems, cfg, activeNav)}
 </section>
 <main>${content}</main>
 ${buildFooter(cfg)}
-<script src="/js/theme.js"></script>
 <script>
   const nav=document.getElementById('site-nav');
   if(nav) window.addEventListener('scroll',()=>nav.classList.toggle('scrolled',window.scrollY>20));
