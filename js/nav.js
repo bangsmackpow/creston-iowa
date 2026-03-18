@@ -20,13 +20,13 @@
       </a>
       <div class="nav-links" id="nav-links">
         <a href="/index.html">Home</a>
-        <a href="/pages/about.html">About</a>
-        <a href="/pages/dining.html">Dining</a>
-        <a href="/pages/attractions.html">Attractions</a>
-        <a href="/pages/news.html">News</a>
-        <a href="/pages/government.html">Government</a>
-        <a href="/pages/chamber.html">Chamber</a>
-        <a href="/pages/jobs.html" class="nav-jobs">🧳 Job Board</a>
+        <a href="/about">About</a>
+        <a href="/food">Dining</a>
+        <a href="/attractions">Attractions</a>
+        <a href="/news">News</a>
+        <a href="/government">Government</a>
+        <a href="/chamber">Chamber</a>
+        <a href="/jobs" class="nav-jobs">🧳 Job Board</a>
       </div>
       <button class="nav-toggle" id="nav-toggle" aria-label="Toggle menu">
         <span></span><span></span><span></span>
@@ -35,13 +35,13 @@
   </nav>
   <div class="mobile-menu" id="mobile-menu">
     <a href="/index.html">🏠 Home</a>
-    <a href="/pages/about.html">📖 About Creston</a>
-    <a href="/pages/dining.html">🍽️ Dining</a>
-    <a href="/pages/attractions.html">🎈 Attractions</a>
-    <a href="/pages/news.html">📰 News</a>
-    <a href="/pages/government.html">🏛️ Government</a>
-    <a href="/pages/chamber.html">🤝 Chamber</a>
-    <a href="/pages/jobs.html" class="nav-jobs">🧳 Post a Job / Find Work</a>
+    <a href="/about">📖 About Creston</a>
+    <a href="/food">🍽️ Dining</a>
+    <a href="/attractions">🎈 Attractions</a>
+    <a href="/news">📰 News</a>
+    <a href="/government">🏛️ Government</a>
+    <a href="/chamber">🤝 Chamber</a>
+    <a href="/jobs" class="nav-jobs">🧳 Post a Job / Find Work</a>
   </div>
   `;
 
@@ -61,27 +61,27 @@
         <div class="footer-col">
           <h4>Explore</h4>
           <ul>
-            <li><a href="/pages/dining.html">Restaurants & Dining</a></li>
-            <li><a href="/pages/attractions.html">Attractions</a></li>
-            <li><a href="/pages/news.html">Local News</a></li>
-            <li><a href="/pages/chamber.html">Chamber of Commerce</a></li>
+            <li><a href="/food">Restaurants & Dining</a></li>
+            <li><a href="/attractions">Attractions</a></li>
+            <li><a href="/news">Local News</a></li>
+            <li><a href="/chamber">Chamber of Commerce</a></li>
           </ul>
         </div>
         <div class="footer-col">
           <h4>Community</h4>
           <ul>
-            <li><a href="/pages/government.html">City Government</a></li>
-            <li><a href="/pages/government.html#police">Police Department</a></li>
-            <li><a href="/pages/government.html#emergency">Emergency Services</a></li>
-            <li><a href="/pages/jobs.html">Job Board</a></li>
+            <li><a href="/government">City Government</a></li>
+            <li><a href="/government#police">Police Department</a></li>
+            <li><a href="/government#emergency">Emergency Services</a></li>
+            <li><a href="/jobs">Job Board</a></li>
           </ul>
         </div>
         <div class="footer-col">
           <h4>Site</h4>
           <ul>
-            <li><a href="/pages/about.html">About Creston</a></li>
-            <li><a href="/pages/advertise.html">Advertise With Us</a></li>
-            <li><a href="/pages/contact.html">Contact</a></li>
+            <li><a href="/about">About Creston</a></li>
+            <li><a href="/advertise">Advertise With Us</a></li>
+            <li><a href="/contact">Contact</a></li>
             <li><a href="/pages/submit-news.html">Submit News</a></li>
           </ul>
         </div>
@@ -90,7 +90,7 @@
     <div class="container">
       <div class="footer-bottom">
         <span>© ${new Date().getFullYear()} creston-iowa.com — Community site. Not affiliated with City of Creston government.</span>
-        <a href="/pages/advertise.html">Advertise</a>
+        <a href="/advertise">Advertise</a>
       </div>
     </div>
   </footer>

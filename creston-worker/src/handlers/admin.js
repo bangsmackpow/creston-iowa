@@ -1057,7 +1057,7 @@ async function renderPageEditor(env, slug, user) {
             return;
           }
           grid.innerHTML = data.files.map(f => \`
-            <div onclick="insertImage('${f.url}','${f.name}')"
+            <div onclick="insertImage('\${f.url}','\${f.name}')"
                  style="cursor:pointer;border:2px solid #eee;border-radius:8px;overflow:hidden;transition:border-color .15s;"
                  onmouseover="this.style.borderColor='#2d5a3d'" onmouseout="this.style.borderColor='#eee'">
               <img src="\${f.url}" alt="\${f.name}"
