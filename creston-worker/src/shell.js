@@ -76,6 +76,7 @@ ${buildNav(navItems, cfg, activeNav)}
 </section>
 <main>${content}</main>
 ${buildFooter(cfg)}
+<script src="/js/theme.js"></script>
 <script>
   const nav=document.getElementById('site-nav');
   if(nav) window.addEventListener('scroll',()=>nav.classList.toggle('scrolled',window.scrollY>20));

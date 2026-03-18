@@ -13,6 +13,7 @@
  */
 
 import { isAuthenticated } from '../auth.js';
+import { getSiteConfig, buildThemeCSS } from '../db/site.js';
 import { listContent, getContent, putContent, deleteContent, moveContent, findBySlug } from '../r2.js';
 import { parseMarkdown } from '../markdown.js';
 
@@ -26,6 +27,28 @@ const TYPE_MAP = {
 };
 
 export async function handleApi(request, env, url) {
+  // Public endpoint — no auth required
+  if (url.pathname === '/api/config' && request.method === 'GET') {
+    const cfg      = await getSiteConfig(env);
+    const themeCSS = buildThemeCSS(cfg);
+    return new Response(JSON.stringify({
+      theme:        cfg.theme,
+      themeCSS,
+      custom_colors: cfg.custom_colors,
+      font_heading: cfg.font_heading,
+      font_body:    cfg.font_body,
+      font_ui:      cfg.font_ui,
+      name:         cfg.name,
+      tagline:      cfg.tagline,
+    }), {
+      headers: {
+        'Content-Type':  'application/json',
+        'Cache-Control': 'public, max-age=60, stale-while-revalidate=30',
+        'Access-Control-Allow-Origin': '*',
+      }
+    });
+  }
+
   if (!isAuthenticated(request, env)) {
     return jsonResponse({ error: 'Unauthorized' }, 401);
   }

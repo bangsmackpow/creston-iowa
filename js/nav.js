@@ -1,5 +1,13 @@
 /* nav.js - shared nav injection */
 (function() {
+  // Load dynamic theme from site config
+  if (!document.getElementById('creston-theme-script')) {
+    const ts = document.createElement('script');
+    ts.id = 'creston-theme-script';
+    ts.src = '/js/theme.js';
+    document.head.appendChild(ts);
+  }
+
   const NAV_HTML = `
   <nav class="site-nav" id="site-nav">
     <div class="container nav-inner">
@@ -13,12 +21,12 @@
       <div class="nav-links" id="nav-links">
         <a href="/index.html">Home</a>
         <a href="/pages/about.html">About</a>
-        <a href="/food">Dining</a>
-        <a href="/attractions">Attractions</a>
-        <a href="/news">News</a>
+        <a href="/pages/dining.html">Dining</a>
+        <a href="/pages/attractions.html">Attractions</a>
+        <a href="/pages/news.html">News</a>
         <a href="/pages/government.html">Government</a>
         <a href="/pages/chamber.html">Chamber</a>
-        <a href="/jobs" class="nav-jobs">🧳 Job Board</a>
+        <a href="/pages/jobs.html" class="nav-jobs">🧳 Job Board</a>
       </div>
       <button class="nav-toggle" id="nav-toggle" aria-label="Toggle menu">
         <span></span><span></span><span></span>
@@ -28,12 +36,12 @@
   <div class="mobile-menu" id="mobile-menu">
     <a href="/index.html">🏠 Home</a>
     <a href="/pages/about.html">📖 About Creston</a>
-    <a href="/food">🍽️ Dining</a>
-    <a href="/attractions">🎈 Attractions</a>
-    <a href="/news">📰 News</a>
+    <a href="/pages/dining.html">🍽️ Dining</a>
+    <a href="/pages/attractions.html">🎈 Attractions</a>
+    <a href="/pages/news.html">📰 News</a>
     <a href="/pages/government.html">🏛️ Government</a>
     <a href="/pages/chamber.html">🤝 Chamber</a>
-    <a href="/jobs" class="nav-jobs">🧳 Post a Job / Find Work</a>
+    <a href="/pages/jobs.html" class="nav-jobs">🧳 Post a Job / Find Work</a>
   </div>
   `;
 
@@ -116,10 +124,10 @@
   // Inject nav
   const navTarget = document.getElementById('nav-placeholder');
   if (navTarget) navTarget.innerHTML = NAV_HTML;
-  // If no placeholder, do nothing — Worker pages include their own nav
+  else document.body.insertAdjacentHTML('afterbegin', NAV_HTML);
 
   // Inject footer
   const footerTarget = document.getElementById('footer-placeholder');
-  if (footerTarget) footerTarget.innerHTML = FOOTER_HTML + SCRIPTS;
-  // If no placeholder, do nothing — Worker pages include their own footer
+  if (footerTarget) footerTarget.innerHTML = FOOTER_HTML;
+  else document.body.insertAdjacentHTML('beforeend', FOOTER_HTML + SCRIPTS);
 })();
