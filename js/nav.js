@@ -96,30 +96,6 @@
   </footer>
   `;
 
-  const SCRIPTS = `
-  <script>
-    // Nav scroll behavior
-    const nav = document.getElementById('site-nav');
-    if (nav) {
-      window.addEventListener('scroll', () => {
-        nav.classList.toggle('scrolled', window.scrollY > 20);
-      });
-    }
-    // Mobile toggle
-    const toggle = document.getElementById('nav-toggle');
-    const mobileMenu = document.getElementById('mobile-menu');
-    if (toggle && mobileMenu) {
-      toggle.addEventListener('click', () => {
-        mobileMenu.classList.toggle('open');
-      });
-    }
-    // Active nav link
-    const links = document.querySelectorAll('.nav-links a, .mobile-menu a');
-    links.forEach(link => {
-      if (link.href === window.location.href) link.classList.add('active');
-    });
-  </script>
-  `;
 
   // Inject nav
   const navTarget = document.getElementById('nav-placeholder');
@@ -129,5 +105,39 @@
   // Inject footer
   const footerTarget = document.getElementById('footer-placeholder');
   if (footerTarget) footerTarget.innerHTML = FOOTER_HTML;
-  else document.body.insertAdjacentHTML('beforeend', FOOTER_HTML + SCRIPTS);
+  else document.body.insertAdjacentHTML('beforeend', FOOTER_HTML);
+
+  // Always init nav behavior — runs after nav + footer are in the DOM
+  initNav();
 })();
+
+function initNav() {
+  // Scroll behavior
+  const nav = document.getElementById('site-nav');
+  if (nav) {
+    window.addEventListener('scroll', () => {
+      nav.classList.toggle('scrolled', window.scrollY > 20);
+    });
+  }
+
+  // Mobile toggle
+  const toggle = document.getElementById('nav-toggle');
+  const mobileMenu = document.getElementById('mobile-menu');
+  if (toggle && mobileMenu) {
+    toggle.addEventListener('click', () => {
+      mobileMenu.classList.toggle('open');
+    });
+    // Close menu when a link is clicked
+    mobileMenu.querySelectorAll('a').forEach(link => {
+      link.addEventListener('click', () => {
+        mobileMenu.classList.remove('open');
+      });
+    });
+  }
+
+  // Active nav link
+  const links = document.querySelectorAll('.nav-links a, .mobile-menu a');
+  links.forEach(link => {
+    if (link.href === window.location.href) link.classList.add('active');
+  });
+}

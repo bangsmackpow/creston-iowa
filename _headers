@@ -1,18 +1,20 @@
 # Cloudflare Pages _headers
-# Security headers + cache policy
 
 /*
-  X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=()
   X-XSS-Protection: 1; mode=block
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com https://www.googletagmanager.com https://www.google-analytics.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://cloudflareinsights.com https://api.resend.com https://www.google-analytics.com; frame-ancestors 'none';
 
 /css/*
   Cache-Control: public, max-age=2592000, immutable
 
+/js/theme.js
+  Cache-Control: public, max-age=0, must-revalidate
+
 /js/*
-  Cache-Control: public, max-age=2592000, immutable
+  Cache-Control: public, max-age=86400
 
 /images/*
   Cache-Control: public, max-age=31536000, immutable
