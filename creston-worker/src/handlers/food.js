@@ -144,8 +144,7 @@ async function renderFoodDetail(request, env, slug) {
   }));
 }
 
-async function renderFoodCard(item) {
-  const cfg = await getSiteConfig(env);
+function renderFoodCard(item) {
   const m       = item.meta;
   const cat     = (m.category || 'other').toLowerCase();
   const bgColor = {

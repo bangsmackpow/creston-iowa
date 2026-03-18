@@ -121,8 +121,7 @@ async function renderNewsDetail(request, env, slug) {
   }));
 }
 
-async function renderNewsCard(article) {
-  const cfg = await getSiteConfig(env);
+function renderNewsCard(article) {
   const m    = article.meta;
   const date = m.date ? new Date(m.date + 'T12:00:00') : null;
   const day   = date ? date.getDate() : '—';

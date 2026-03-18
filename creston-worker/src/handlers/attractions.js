@@ -90,8 +90,7 @@ async function renderAttractionDetail(request, env, slug) {
   }));
 }
 
-async function renderAttractionCard(item) {
-  const cfg = await getSiteConfig(env);
+function renderAttractionCard(item) {
   const m = item.meta;
   return `
     <a href="/attractions/${escHtml(item.slug)}" class="attract-card">

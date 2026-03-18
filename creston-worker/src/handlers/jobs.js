@@ -209,8 +209,7 @@ async function renderJobDetail(request, env, slug) {
 }
 
 // ── Render helpers ───────────────────────────────────────────
-async function renderJobCard(job) {
-  const cfg = await getSiteConfig(env);
+function renderJobCard(job) {
   const m = job.meta;
   const isFeatured = m.featured === true;
 
@@ -240,8 +239,7 @@ async function renderJobCard(job) {
     </div>`;
 }
 
-async function renderCategorySidebar(jobs) {
-  const cfg = await getSiteConfig(env);
+function renderCategorySidebar(jobs) {
   const counts = {};
   for (const j of jobs) {
     const cat = j.meta.category || 'Other';
