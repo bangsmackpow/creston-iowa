@@ -48,7 +48,7 @@ async function renderFoodList(request, env) {
             <h3>Missing a Restaurant?</h3>
             <p>Know a Creston-area eatery that should be listed? Submit it and we'll add it.</p>
           </div>
-          <a href="/pages/contact.html" class="btn btn-primary">Submit a Restaurant</a>
+          <a href="/contact" class="btn btn-primary">Submit a Restaurant</a>
         </div>
       </div>
     </section>

@@ -34,7 +34,7 @@ async function renderJobList(request, env) {
     ? `<div class="empty-state">
         <div style="font-size:3rem;margin-bottom:16px;">💼</div>
         <h3>No Active Job Listings</h3>
-        <p>Check back soon — or <a href="/pages/advertise.html#jobs">post a job</a> to reach Creston talent.</p>
+        <p>Check back soon — or <a href="/advertise#jobs">post a job</a> to reach Creston talent.</p>
        </div>`
     : active.map(renderJobCard).join('\n');
 
@@ -75,7 +75,7 @@ async function renderJobList(request, env) {
                 <p style="font-size:.87rem;margin-bottom:12px;">Post a job listing and reach qualified candidates in Creston and Union County.</p>
                 <div style="font-family:var(--font-display);font-size:2rem;color:var(--gold);font-weight:900;line-height:1;margin-bottom:4px;">$49</div>
                 <div style="font-family:var(--font-ui);font-size:.72rem;color:var(--text-muted);margin-bottom:16px;">per 30-day listing</div>
-                <a href="/pages/jobs.html#post" class="btn btn-gold" style="width:100%;justify-content:center;">Post a Job</a>
+                <a href="/jobs#post" class="btn btn-gold" style="width:100%;justify-content:center;">Post a Job</a>
               </div>
             </div>
 

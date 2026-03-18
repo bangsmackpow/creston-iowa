@@ -20,7 +20,7 @@ async function renderNewsList(request, env) {
   const articles = await listContent(env, 'news');
 
   const articleCards = articles.length === 0
-    ? `<div class="empty-state"><div style="font-size:3rem;margin-bottom:16px;">📰</div><h3>No News Yet</h3><p>Check back soon, or <a href="/pages/contact.html">submit a news tip</a>.</p></div>`
+    ? `<div class="empty-state"><div style="font-size:3rem;margin-bottom:16px;">📰</div><h3>No News Yet</h3><p>Check back soon, or <a href="/contact">submit a news tip</a>.</p></div>`
     : articles.map(renderNewsCard).join('\n');
 
   const content = `
