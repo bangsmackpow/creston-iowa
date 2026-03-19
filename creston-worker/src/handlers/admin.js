@@ -3,7 +3,8 @@
  */
 
 import { getAuthUser, createUserSession, destroySession } from '../db/auth-d1.js';
-import { handleSuggestionsAdmin } from './suggestions.js';
+import { handleSuggestionsAdmin }  from './suggestions.js';
+import { handleBulletinAdmin }     from './bulletin.js';
 import { adminPage as _ap }         from './admin.js';
 import { handleNewsletterAdmin }  from './newsletter.js';
 import { handleSettings }         from './settings.js';
@@ -36,6 +37,7 @@ export async function handleAdmin(request, env, url) {
   if (path.startsWith('/admin/companies'))        return handleCompanies(request, env, url, user);
   if (path.startsWith('/admin/account'))          return handleAccount(request, env, url, user);
   if (path.startsWith('/admin/suggestions'))       return handleSuggestionsAdmin(request, env, url, user);
+  if (path.startsWith('/admin/bulletin'))          return handleBulletinAdmin(request, env, url, user);
   if (path.startsWith('/admin/newsletter'))        return handleNewsletterAdmin(request, env, url, user);
   if (path.startsWith('/admin/settings'))          return handleSettings(request, env, url, user);
   if (path.startsWith('/admin/'))                  return routeContent(request, env, url, path, user);

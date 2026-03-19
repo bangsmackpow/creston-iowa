@@ -40,31 +40,50 @@ export async function processSuggestions(env) {
   const feeds = await loadFeeds(env);
 
   if (!feeds.length) {
-    console.log('No RSS feeds configured. Add them at /admin/suggestions/feeds');
-    return;
+    console.log('No RSS feeds configured.');
+    return { processed: 0, created: 0, errors: ['No RSS feeds configured'] };
+  }
+
+  const activeFeeds = feeds.filter(f => f.active && f.url);
+  if (!activeFeeds.length) {
+    return { processed: 0, created: 0, errors: ['No active feeds with URLs'] };
   }
 
   // Load seen item IDs to avoid duplicates
   const seenFile = await env.BUCKET.get(SEEN_KEY);
-  const seen     = seenFile ? new Set(JSON.parse(await seenFile.text())) : new Set();
+  const seen     = seenFile ? new Set(JSON.parse(await seenFile.text()).filter(Boolean)) : new Set();
   const newSeen  = new Set(seen);
   const pending  = [];
+  const errors   = [];
+  let   processed = 0;
 
-  for (const feed of feeds.filter(f => f.active)) {
+  for (const feed of activeFeeds) {
     try {
+      console.log(`Fetching feed: ${feed.name} — ${feed.url}`);
       const items = await fetchRssFeed(feed.url);
-      console.log(`Feed ${feed.name}: ${items.length} items`);
+      console.log(`Feed ${feed.name}: ${items.length} items found`);
 
       for (const item of items.slice(0, 10)) {
-        const id = item.link || item.guid || item.title;
-        if (seen.has(id)) continue;
+        const id = item.link || item.guid || item.title || '';
+        if (!id) continue;
+        processed++;
+
+        if (seen.has(id)) {
+          console.log(`Skipping seen item: ${item.title}`);
+          continue;
+        }
+
+        // Always add to newSeen regardless of relevance
         newSeen.add(id);
 
-        // Run through AI
+        // Run through AI (or fallback if AI not bound)
         const suggestion = await evaluateWithAI(env, item, feed, cfg);
         if (!suggestion) continue;
 
-        if (suggestion.relevant && suggestion.confidence >= 0.65) {
+        // Lower threshold — if no AI binding, confidence is 0.5 so use 0.4
+        const threshold = env.AI ? 0.65 : 0.4;
+
+        if (suggestion.relevant && suggestion.confidence >= threshold) {
           const ts  = Date.now();
           const key = `${PENDING_PREFIX}${ts}-${slugify(item.title || 'item')}.json`;
           await env.BUCKET.put(key, JSON.stringify({
@@ -77,10 +96,13 @@ export async function processSuggestions(env) {
           }), { httpMetadata: { contentType: 'application/json' } });
           pending.push(suggestion);
           console.log(`Suggestion created: ${item.title}`);
+        } else {
+          console.log(`Skipping low-confidence item (${suggestion.confidence}): ${item.title}`);
         }
       }
     } catch (err) {
       console.error(`Feed error (${feed.name}):`, err.message);
+      errors.push(`${feed.name}: ${err.message}`);
     }
   }
 
@@ -92,7 +114,8 @@ export async function processSuggestions(env) {
     await notifyAdmin(env, pending, cfg);
   }
 
-  console.log(`Done. ${pending.length} new suggestions created.`);
+  console.log(`Done. Processed ${processed} items, ${pending.length} new suggestions created.`);
+  return { processed, created: pending.length, errors };
 }
 
 // ── AI evaluation ──────────────────────────────────────────────
@@ -341,7 +364,8 @@ async function renderSuggestionsList(env, user) {
       </div>
       <div style="display:flex;gap:10px;">
         <a href="/admin/suggestions/feeds" class="btn-admin-secondary">⚙️ Manage Feeds</a>
-        <button onclick="runScanner()" class="btn-admin-primary">▶ Run Now</button>
+        <button onclick="runScanner(false)" class="btn-admin-primary">▶ Run Now</button>
+        <button onclick="runScanner(true)" class="btn-admin-secondary" title="Reprocesses all feed items, ignoring seen history">↺ Run Fresh</button>
       </div>
     </div>
 
@@ -412,12 +436,13 @@ async function renderSuggestionsList(env, user) {
         if (mdBtn) showTab(mdBtn, 'markdown-'+key);
       }
 
-      async function runScanner() {
+      async function runScanner(fresh=false) {
         const st = document.getElementById('scanner-status');
-        st.textContent = '⏳ Running AI scanner... this may take 30-60 seconds.';
+        st.textContent = fresh ? '⏳ Running fresh scan (clearing seen history)...' : '⏳ Running AI scanner... this may take 30-60 seconds.';
         st.style.color = '#888';
         try {
-          const r = await fetch('/admin/suggestions/run', { method:'POST', headers:H });
+          const url = fresh ? '/admin/suggestions/run?fresh=1' : '/admin/suggestions/run';
+          const r = await fetch(url, { method:'POST', headers:H });
           const d = await r.json();
           if (d.ok) {
             st.textContent = '✅ ' + (d.message || 'Scanner complete! ' + (d.count||0) + ' suggestion(s) pending.');
@@ -608,10 +633,27 @@ async function runManually(request, env) {
     if (!activeFeeds.length) {
       return jsonRes({ ok: false, error: 'No active feeds with URLs found. Enable at least one feed in Manage Feeds.' }, 400);
     }
-    await processSuggestions(env);
+
+    // Optional: clear seen cache if ?fresh=1 to reprocess all items
+    const url = new URL(request.url);
+    if (url.searchParams.get('fresh') === '1') {
+      await env.BUCKET.delete(SEEN_KEY);
+      console.log('Cleared seen cache for fresh run');
+    }
+
+    const result = await processSuggestions(env);
     const listed = await env.BUCKET.list({ prefix: PENDING_PREFIX });
-    const count  = listed.objects.filter(o => o.key.endsWith('.json')).length;
-    return jsonRes({ ok: true, count, message: `Scanned ${activeFeeds.length} feed(s). ${count} total suggestions pending review.` });
+    const totalPending = listed.objects.filter(o => o.key.endsWith('.json')).length;
+
+    const msg = [
+      `Scanned ${activeFeeds.length} feed(s).`,
+      `Processed ${result?.processed || 0} items.`,
+      `Created ${result?.created || 0} new suggestion(s).`,
+      totalPending > 0 ? `${totalPending} total pending review.` : 'No pending suggestions.',
+      ...(result?.errors?.length ? ['Errors: ' + result.errors.join('; ')] : []),
+    ].join(' ');
+
+    return jsonRes({ ok: true, count: totalPending, message: msg });
   } catch (err) {
     console.error('runManually error:', err);
     return jsonRes({ error: err.message }, 500);

@@ -130,11 +130,20 @@ export async function handleApi(request, env, url) {
     return jsonResponse({ ok: true, key });
   }
 
-  // UPDATE — use exact key if provided
+  // UPDATE — save revision first, then overwrite
   if (request.method === 'PUT' && slug) {
     const body = await request.json();
     if (!body.content) return jsonResponse({ error: 'content is required' }, 400);
     const key = body.key || `${prefix}/${sanitizeSlug(slug)}.md`;
+    // Save current content as a revision before overwriting
+    try {
+      const existing = await env.BUCKET.get(key);
+      if (existing) {
+        await saveRevision(env, type, slug, await existing.text());
+      }
+    } catch (revErr) {
+      console.error('Revision save failed (non-fatal):', revErr.message);
+    }
     await putContent(env, key, body.content);
     return jsonResponse({ ok: true, key });
   }
