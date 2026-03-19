@@ -16,7 +16,8 @@
  *   GET  /unsubscribe?email=         → remove subscriber
  */
 
-import { escHtml } from '../shell.js';
+import { escHtml }   from '../shell.js';
+import { adminPage } from './admin.js';
 
 const RESEND_API = 'https://api.resend.com';
 
@@ -43,7 +44,6 @@ export async function handleNewsletterAdmin(request, env, url, user) {
 
 // ── Newsletter dashboard ───────────────────────────────────────
 async function renderNewsletterDashboard(env, user) {
-  const { adminPage } = await import('./admin.js');
   const hasKeys = !!(env.RESEND_API_KEY && env.RESEND_AUDIENCE_ID);
 
   let stats = { total: 0, subscribed: 0, unsubscribed: 0 };
@@ -137,8 +137,6 @@ async function renderNewsletterDashboard(env, user) {
 
 // ── Campaign composer ──────────────────────────────────────────
 async function renderCampaignComposer(env, user) {
-  const { adminPage } = await import('./admin.js');
-
   const body = `
     <div class="editor-header">
       <a href="/admin/newsletter" class="back-link">← Back to Newsletter</a>
@@ -424,8 +422,6 @@ export async function handleSubscribe(request, env) {
 
 // ── Subscriber list ────────────────────────────────────────────
 async function renderSubscriberList(env, user) {
-  const { adminPage } = await import('./admin.js');
-
   let contacts = [];
   if (env.RESEND_API_KEY && env.RESEND_AUDIENCE_ID) {
     try {

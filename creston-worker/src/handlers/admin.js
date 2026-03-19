@@ -757,7 +757,7 @@ function attrTpl() {
 }
 
 // ── Shell ──────────────────────────────────────────────────────
-function adminPage(title, body, user) {
+export function adminPage(title, body, user) {
   const sup = user?.role === 'superadmin';
   return new Response(`<!DOCTYPE html>
 <html lang="en">

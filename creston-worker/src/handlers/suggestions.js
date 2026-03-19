@@ -23,6 +23,7 @@
  */
 
 import { getSiteConfig } from '../db/site.js';
+import { adminPage }    from './admin.js';
 import { escHtml }       from '../shell.js';
 import { parseMarkdown } from '../markdown.js';
 
@@ -272,8 +273,6 @@ export async function handleSuggestionsAdmin(request, env, url, user) {
 }
 
 async function renderSuggestionsList(env, user) {
-  const { adminPage } = await import('./admin.js');
-
   const listed  = await env.BUCKET.list({ prefix: PENDING_PREFIX });
   const pending = [];
 
@@ -437,8 +436,6 @@ async function renderSuggestionsList(env, user) {
 
 // ── Feeds management UI ────────────────────────────────────────
 async function handleFeedsUI(request, env, url, user) {
-  const { adminPage } = await import('./admin.js');
-
   if (request.method === 'POST') {
     const body  = await request.json().catch(() => ({}));
     await env.BUCKET.put(FEEDS_KEY, JSON.stringify(body.feeds || []), {
