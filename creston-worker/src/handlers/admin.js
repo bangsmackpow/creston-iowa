@@ -23,6 +23,8 @@ export async function handleAdmin(request, env, url) {
 
   const user = await getAuthUser(request, env);
   if (!user) return new Response(null, { status: 302, headers: { Location: '/admin/login' } });
+  // Attach env to user so build info is available in adminPage
+  if (user) user._env = env;
 
   if (path === '/admin' || path === '/admin/')    return renderDashboard(env, user);
   if (path.startsWith('/admin/pages'))            return handlePages(request, env, url, user);
@@ -44,7 +46,7 @@ export async function handleAdmin(request, env, url) {
 // ── Login ──────────────────────────────────────────────────────
 async function handleLogin(request, env) {
   if (!env.DB) {
-    return html(loginPage('', 'D1 database not bound. Add binding named "DB" in Cloudflare dashboard → Pages → Settings → Bindings.'));
+    return html(loginPage('', 'D1 database not bound. Add binding named "DB" in Cloudflare dashboard → Pages → Settings → Bindings.', env));
   }
 
   if (request.method === 'POST') {
@@ -52,18 +54,18 @@ async function handleLogin(request, env) {
     const email    = (fd.get('email') || '').trim();
     const password = fd.get('password') || '';
 
-    if (!email || !password) return html(loginPage('Email and password are required.'));
+    if (!email || !password) return html(loginPage('Email and password are required.', '', env));
 
     try {
       const dbUser = await getUserByEmail(env.DB, email);
-      if (!dbUser) return html(loginPage('Invalid email or password.'), 401);
+      if (!dbUser) return html(loginPage('Invalid email or password.', '', env), 401);
 
       const isPlaceholder = dbUser.password_hash === 'PLACEHOLDER_CHANGE_ON_FIRST_LOGIN';
       const valid = isPlaceholder
         ? password === 'changeme'
         : await verifyPassword(password, dbUser.password_hash);
 
-      if (!valid) return html(loginPage('Invalid email or password.'), 401);
+      if (!valid) return html(loginPage('Invalid email or password.', '', env), 401);
 
       const { token, cookie } = await createUserSession(env, dbUser.id, request);
       const redirect = isPlaceholder ? '/admin/account?first_login=1' : '/admin';
@@ -76,12 +78,12 @@ async function handleLogin(request, env) {
       });
     } catch (err) {
       console.error('Login error:', err);
-      return html(loginPage('Login error — please try again.'), 500);
+      return html(loginPage('Login error — please try again.', '', env), 500);
     }
   }
 
   const welcome = new URL(request.url).searchParams.get('welcome');
-  return html(loginPage('', welcome ? 'Account created! Please log in.' : ''));
+  return html(loginPage('', welcome ? 'Account created! Please log in.' : '', env));
 }
 
 async function handleLogout(request, env) {
@@ -879,19 +881,50 @@ export function adminPage(title, body, user) {
 </html>`, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
 }
 
-function loginPage(error='', info='') {
-  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Admin Login — Creston</title>
+function loginPage(error='', info='', env=null) {
+  // Build metadata injected by Cloudflare Pages at build time
+  const sha      = env?.CF_PAGES_COMMIT_SHA || '';
+  const branch   = env?.CF_PAGES_BRANCH     || '';
+  const shortSha = sha ? sha.slice(0, 7)    : '';
+
+  // Build indicator — green if on main/production, amber if on preview branch
+  const isProduction = !branch || branch === 'main' || branch === 'master';
+  const buildBadge   = shortSha ? `
+    <div style="margin-top:20px;padding:8px 12px;background:#f5f5f5;border-radius:8px;border:1px solid #e0e0e0;font-size:.72rem;font-family:monospace;color:#666;text-align:left;line-height:1.8;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-weight:700;font-family:sans-serif;font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;color:#999;">Deployed Build</span>
+        <span style="background:${isProduction ? '#d4edda' : '#fff3cd'};color:${isProduction ? '#155724' : '#856404'};padding:1px 7px;border-radius:100px;font-family:sans-serif;font-size:.68rem;font-weight:700;">
+          ${isProduction ? '✓ production' : '⚠ preview'}
+        </span>
+      </div>
+      <div style="margin-top:4px;">
+        <span style="color:#aaa;">commit</span> <strong style="color:#333;">${shortSha}</strong>
+        ${branch ? ` <span style="color:#aaa;">on</span> <strong style="color:#333;">${escapeHtml(branch)}</strong>` : ''}
+      </div>
+      <div style="margin-top:2px;color:#aaa;font-family:sans-serif;font-size:.68rem;">
+        <a href="https://github.com/bangsmackpow/creston-iowa/commit/${sha}" target="_blank" 
+           rel="noopener" style="color:#2d5a3d;text-decoration:none;">
+          View on GitHub →
+        </a>
+      </div>
+    </div>` : `
+    <div style="margin-top:20px;padding:8px 12px;background:#f5f5f5;border-radius:8px;border:1px solid #e0e0e0;font-size:.72rem;font-family:sans-serif;color:#aaa;text-align:center;">
+      Build info not available — running locally or env vars not set
+    </div>`;
+
+  return \`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Admin Login — Creston</title>
   <style>*{box-sizing:border-box;margin:0;padding:0}body{background:#1a3a2a;min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:sans-serif}.card{background:#fff;border-radius:16px;padding:48px 40px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.3);text-align:center}.logo{font-size:3rem;margin-bottom:8px}h1{font-family:Georgia,serif;color:#1a3a2a;font-size:1.6rem;margin-bottom:4px}.sub{color:#888;font-size:.85rem;margin-bottom:24px}.alert{border-radius:8px;padding:10px 16px;margin-bottom:16px;font-size:.88rem}.err{background:#fde8e8;color:#b84040}.info{background:#e8f2eb;color:#2d5a3d}label{display:block;text-align:left;font-size:.76rem;font-weight:700;color:#444;margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em}.g{margin-bottom:16px}input{width:100%;padding:12px 16px;border:1.5px solid #ddd;border-radius:8px;font-size:1rem}input:focus{outline:none;border-color:#2d5a3d;box-shadow:0 0 0 3px rgba(45,90,61,.12)}button{width:100%;padding:13px;background:#2d5a3d;color:#fff;border:none;border-radius:8px;font-size:.95rem;font-weight:600;cursor:pointer;margin-top:4px}button:hover{background:#1a3a2a}.back{display:block;margin-top:16px;color:#888;font-size:.82rem;text-decoration:none}.back:hover{color:#2d5a3d}</style>
   </head><body><div class="card"><div class="logo">🌾</div><h1>Creston Admin</h1><p class="sub">creston-iowa.com content manager</p>
-  ${error ? `<div class="alert err">⚠️ ${escapeHtml(error)}</div>` : ''}
-  ${info  ? `<div class="alert info">ℹ️ ${escapeHtml(info)}</div>`  : ''}
+  \${error ? \`<div class="alert err">⚠️ \${escapeHtml(error)}</div>\` : ''}
+  \${info  ? \`<div class="alert info">ℹ️ \${escapeHtml(info)}</div>\`  : ''}
   <form method="POST" action="/admin/login">
     <div class="g"><label>Email</label><input type="email" name="email" required autofocus autocomplete="email" placeholder="admin@creston-iowa.com"></div>
     <div class="g"><label>Password</label><input type="password" name="password" required autocomplete="current-password"></div>
     <button type="submit">Sign In</button>
   </form>
   <a href="/" class="back">← Back to site</a>
-  </div></body></html>`;
+  \${buildBadge}
+  </div></body></html>\`;
 }
 
 function invitePage(token, invite, error='') {
