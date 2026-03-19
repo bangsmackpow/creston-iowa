@@ -11,7 +11,7 @@ import { parseMarkdown }  from '../markdown.js';
 
 export async function handleHome(request, env, url) {
   const cfg   = await getSiteConfig(env);
-  const alert = cfg.alert?.active ? cfg.alert : null;
+  const alert = (cfg.alert?.active === true && cfg.alert?.title) ? cfg.alert : null;
 
   // Load live data in parallel
   const [newsItems, jobItems, eventItems] = await Promise.all([
@@ -55,19 +55,25 @@ export async function handleHome(request, env, url) {
   <link rel="stylesheet" href="/css/theme.css">
   <link rel="stylesheet" href="/css/print.css" media="print">
   ${cfg.favicon ? `<link rel="icon" href="/media/${escHtml(cfg.favicon)}" type="image/png">` : '<link rel="icon" href="/favicon.ico">'}
-  <style>${themeCSS}</style>
+  <style>${themeCSS}
+  .skip-nav { position:absolute; top:-100px; left:12px; z-index:9999; background:var(--green-deep,#1a3a2a); color:white; padding:10px 20px; border-radius:0 0 8px 8px; font-family:var(--font-ui,sans-serif); font-size:.88rem; font-weight:600; text-decoration:none; transition:top .15s; }
+  .skip-nav:focus { top:0; outline:3px solid var(--gold,#c9933a); outline-offset:2px; }
+</style>
   ${cfg.google_analytics_id ? gaScript(cfg.google_analytics_id) : ''}
 </head>
 <body data-print-date="${new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'})}">
 
+<a href="#main-content" class="skip-nav">Skip to main content</a>
 ${alert ? buildAlertBanner(alert) : ''}
 
 ${buildNav(cfg)}
 
+<main id="main-content">
 ${buildHero(cfg)}
 
 ${sections}
 
+</main>
 ${buildFooter(cfg)}
 
 <script src="/js/home.js"></script>
@@ -422,14 +428,14 @@ function buildNav(cfg) {
     `<a href="${escHtml(n.href)}"${n.highlight ? ' class="nav-jobs"' : ''}>${escHtml(n.label)}</a>`
   ).join('\n    ');
 
-  return `<nav class="site-nav" id="site-nav">
+  return `<nav class="site-nav" id="site-nav" role="navigation" aria-label="Main navigation">
   <div class="container nav-inner">
     <a href="/" class="nav-logo">
       ${logo}
       <span>${escHtml(cfg.name || 'My Town')}<small class="logo-sub">${escHtml(cfg.tagline || '')}</small></span>
     </a>
     <div class="nav-links" id="nav-links">${desktop}</div>
-    <button class="nav-toggle" id="nav-toggle" aria-label="Toggle menu"><span></span><span></span><span></span></button>
+    <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="mobile-menu"><span></span><span></span><span></span></button>
   </div>
 </nav>
 <div class="mobile-menu" id="mobile-menu">${mobile}</div>`;
@@ -482,7 +488,7 @@ function buildFooter(cfg) {
    .map(([k, icon]) => `<a href="${escHtml(cfg[k])}" class="social-link" target="_blank" rel="noopener">${icon}</a>`)
    .join('');
 
-  return `<footer class="site-footer">
+  return `<footer class="site-footer" role="contentinfo">
   <div class="container">
     <div class="footer-grid">
       <div class="footer-brand">

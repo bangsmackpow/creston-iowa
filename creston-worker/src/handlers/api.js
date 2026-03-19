@@ -14,7 +14,7 @@
 
 import { getAuthUser } from '../db/auth-d1.js';
 import { getSiteConfig, buildThemeCSS } from '../db/site.js';
-import { saveRevision }              from '../revisions.js';
+import { saveRevision, listRevisions, getRevision } from '../revisions.js';
 import { listContent, getContent, putContent, deleteContent, moveContent, findBySlug } from '../r2.js';
 import { parseMarkdown } from '../markdown.js';
 
@@ -81,6 +81,26 @@ export async function handleApi(request, env, url) {
     return jsonResponse({ error: `Unknown type: ${type}` }, 400);
   }
 
+  // ── Revision history — check BEFORE generic GET/POST ────────
+  const subAction = parts[3]; // e.g. 'revisions' or 'restore'
+
+  if (subAction === 'revisions' && request.method === 'GET') {
+    const revs = await listRevisions(env, type, slug);
+    return jsonResponse({ revisions: revs });
+  }
+
+  if (subAction === 'restore' && request.method === 'POST') {
+    const body = await request.json().catch(() => ({}));
+    if (!body.revisionKey) return jsonResponse({ error: 'revisionKey required' }, 400);
+    const revContent = await getRevision(env, body.revisionKey);
+    if (!revContent) return jsonResponse({ error: 'Revision not found' }, 404);
+    const key = `${prefix}/${sanitizeSlug(slug)}.md`;
+    const existing = await env.BUCKET.get(key);
+    if (existing) await saveRevision(env, type, slug, await existing.text());
+    await putContent(env, key, revContent);
+    return jsonResponse({ ok: true });
+  }
+
   // LIST
   if (request.method === 'GET' && !slug) {
     const items = await listContent(env, prefix);
@@ -128,25 +148,6 @@ export async function handleApi(request, env, url) {
     return jsonResponse({ ok: true });
   }
 
-  // ── Revision history ──────────────────────────────────────
-  if (request.method === 'GET' && url.pathname.includes('/revisions/')) {
-    const { listRevisions } = await import('../revisions.js');
-    const revs = await listRevisions(env, type, slug);
-    return jsonResponse({ revisions: revs });
-  }
-
-  if (request.method === 'POST' && url.pathname.endsWith('/restore')) {
-    const body = await request.json().catch(() => ({}));
-    if (!body.revisionKey) return jsonResponse({ error: 'revisionKey required' }, 400);
-    const { getRevision } = await import('../revisions.js');
-    const revContent = await getRevision(env, body.revisionKey);
-    if (!revContent) return jsonResponse({ error: 'Revision not found' }, 404);
-    // Save current as revision before restoring
-    const existing = await env.BUCKET.get(key);
-    if (existing) await saveRevision(env, type, slug, await existing.text());
-    await putContent(env, key, revContent);
-    return jsonResponse({ ok: true });
-  }
 
   return jsonResponse({ error: 'Method not allowed' }, 405);
 }

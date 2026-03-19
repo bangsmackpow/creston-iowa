@@ -18,6 +18,7 @@ import { handleMeetings }    from './handlers/meetings.js';
 import { handleEvents }      from './handlers/events.js';
 import { handleDirectory }    from './handlers/directory.js';
 import { handleHome }         from './handlers/home.js';
+import { handleBulletin, handleBulletinAdmin } from './handlers/bulletin.js';
 import { handleNewsletterAdmin, handleSubscribe } from './handlers/newsletter.js';
 import { handleSuggestionsAdmin, processSuggestions } from './handlers/suggestions.js';
 import { getAuthUser }       from './db/auth-d1.js';
@@ -81,6 +82,7 @@ export default {
         if (path.startsWith('/admin/settings'))   return await handleSettings(request, env, url, user);
         if (path.startsWith('/admin/newsletter'))  return await handleNewsletterAdmin(request, env, url, user);
         if (path.startsWith('/admin/suggestions')) return await handleSuggestionsAdmin(request, env, url, user);
+        if (path.startsWith('/admin/bulletin'))   return await handleBulletinAdmin(request, env, url, user);
       }
 
       // Admin
@@ -95,6 +97,8 @@ export default {
       if (path.startsWith('/meetings'))    return await handleMeetings(request, env, url);
       if (path.startsWith('/events'))      return await handleEvents(request, env, url);
       if (path.startsWith('/directory'))  return await handleDirectory(request, env, url);
+
+      if (path.startsWith('/bulletin'))  return await handleBulletin(request, env, url);
 
       // Dynamic homepage
       if (path === '/')                    return await handleHome(request, env, url);

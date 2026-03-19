@@ -80,7 +80,7 @@ export async function renderShell({
   ${schema || ''}
 </head>
 <body data-print-date="${new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'})}">
-${cfg.alert && cfg.alert.active ? `
+${cfg.alert && (cfg.alert.active === true || cfg.alert.active === 'true' || cfg.alert.active === 1) && cfg.alert.title ? `
 <div class="emergency-alert alert-${escHtml(cfg.alert.level||'warning')}" id="emergency-alert"
      style="display:${cfg.alert.dismissible?'flex':'flex'}">
   <div class="alert-content">
@@ -113,6 +113,7 @@ ${cfg.alert && cfg.alert.active ? `
     if (el) el.style.display='none';
   }
 </script>` : ''}
+<a href="#main-content" class="skip-nav">Skip to main content</a>
 ${buildNav(navItems, cfg, activeNav)}
 <section class="page-hero">
   <div class="container">

@@ -21,15 +21,23 @@ export async function handleSitemap(request, env) {
     urls.push({ loc: '/attractions', priority: '0.9', changefreq: 'weekly'  });
     urls.push({ loc: '/news',        priority: '0.9', changefreq: 'daily'   });
     urls.push({ loc: '/jobs',        priority: '0.9', changefreq: 'daily'   });
+    urls.push({ loc: '/events',      priority: '0.9', changefreq: 'daily'   });
+    urls.push({ loc: '/meetings',    priority: '0.8', changefreq: 'weekly'  });
+    urls.push({ loc: '/directory',   priority: '0.8', changefreq: 'weekly'  });
     urls.push({ loc: '/contact',     priority: '0.5', changefreq: 'monthly' });
+    urls.push({ loc: '/about',       priority: '0.6', changefreq: 'monthly' });
+    urls.push({ loc: '/government',  priority: '0.6', changefreq: 'monthly' });
 
     // ── Dynamic pages from R2 ─────────────────────────────────
     const prefixes = [
-      { prefix: 'pages/',        base: '',            priority: '0.8', changefreq: 'monthly' },
-      { prefix: 'food/',         base: '/food/',      priority: '0.7', changefreq: 'monthly' },
-      { prefix: 'news/',         base: '/news/',      priority: '0.8', changefreq: 'weekly'  },
+      { prefix: 'pages/',        base: '',              priority: '0.8', changefreq: 'monthly' },
+      { prefix: 'food/',         base: '/food/',        priority: '0.7', changefreq: 'monthly' },
+      { prefix: 'news/',         base: '/news/',        priority: '0.8', changefreq: 'weekly'  },
       { prefix: 'attractions/',  base: '/attractions/', priority: '0.7', changefreq: 'monthly' },
-      { prefix: 'jobs/active/',  base: '/jobs/',      priority: '0.8', changefreq: 'weekly'  },
+      { prefix: 'jobs/active/',  base: '/jobs/',        priority: '0.8', changefreq: 'weekly'  },
+      { prefix: 'events/',       base: '/events/',      priority: '0.8', changefreq: 'weekly'  },
+      { prefix: 'meetings/',     base: '/meetings/',    priority: '0.7', changefreq: 'monthly' },
+      { prefix: 'directory/',    base: '/directory/',   priority: '0.7', changefreq: 'monthly' },
     ];
 
     for (const { prefix, base, priority, changefreq } of prefixes) {

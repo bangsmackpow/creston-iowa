@@ -17,6 +17,8 @@ import { handleSitemap }     from '../creston-worker/src/handlers/sitemap.js';
 import { handleMeetings }    from '../creston-worker/src/handlers/meetings.js';
 import { handleEvents }      from '../creston-worker/src/handlers/events.js';
 import { handleDirectory }    from '../creston-worker/src/handlers/directory.js';
+import { handleHome }         from '../creston-worker/src/handlers/home.js';
+import { handleBulletin, handleBulletinAdmin } from '../creston-worker/src/handlers/bulletin.js';
 import { handleNewsletterAdmin, handleSubscribe } from '../creston-worker/src/handlers/newsletter.js';
 import { handleSuggestionsAdmin } from '../creston-worker/src/handlers/suggestions.js';
 import { getAuthUser }       from '../creston-worker/src/db/auth-d1.js';
@@ -68,6 +70,7 @@ export async function onRequest(context) {
       if (path.startsWith('/admin/settings'))   return await handleSettings(request, env, url, user);
       if (path.startsWith('/admin/newsletter'))  return await handleNewsletterAdmin(request, env, url, user);
       if (path.startsWith('/admin/suggestions')) return await handleSuggestionsAdmin(request, env, url, user);
+      if (path.startsWith('/admin/bulletin'))   return await handleBulletinAdmin(request, env, url, user);
     }
 
     if (path.startsWith('/admin'))                    return await handleAdmin(request, env, url);
@@ -79,6 +82,11 @@ export async function onRequest(context) {
     if (path.startsWith('/meetings'))                 return await handleMeetings(request, env, url);
     if (path.startsWith('/events'))                   return await handleEvents(request, env, url);
     if (path.startsWith('/directory'))                return await handleDirectory(request, env, url);
+
+    if (path.startsWith('/bulletin'))               return await handleBulletin(request, env, url);
+
+    // Dynamic homepage
+    if (path === '/')                                 return await handleHome(request, env, url);
 
     const slug = path.replace(/^\//, '').replace(/\/$/, '');
     if (slug && !slug.includes('.') && !slug.includes('/')) {

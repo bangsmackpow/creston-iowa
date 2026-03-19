@@ -864,6 +864,7 @@ export function adminPage(title, body, user) {
       <a href="/admin/events">🎈 Events</a>
       <a href="/admin/directory">🏪 Directory</a>
       <a href="/admin/newsletter">📧 Newsletter</a>
+      <a href="/admin/bulletin">📋 Bulletin Board</a>
       <a href="/admin/suggestions">🤖 AI Suggestions</a>
       <a href="/admin/settings">⚙️ Settings</a>` : ''}
     </nav>

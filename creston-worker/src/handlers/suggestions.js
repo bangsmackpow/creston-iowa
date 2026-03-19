@@ -420,11 +420,11 @@ async function renderSuggestionsList(env, user) {
           const r = await fetch('/admin/suggestions/run', { method:'POST', headers:H });
           const d = await r.json();
           if (d.ok) {
-            st.textContent = '✅ Scanner complete! '+( d.count||0)+' new suggestion(s) found.';
+            st.textContent = '✅ ' + (d.message || 'Scanner complete! ' + (d.count||0) + ' suggestion(s) pending.');
             st.style.color = '#2d5a3d';
             setTimeout(()=>location.reload(), 2000);
           } else {
-            st.textContent = '❌ Error: '+(d.error||'unknown');
+            st.textContent = '❌ ' + (d.error || 'Unknown error. Check that feeds are configured and active.');
             st.style.color = '#b84040';
           }
         } catch(e) { st.textContent = '❌ '+e.message; st.style.color = '#b84040'; }
@@ -600,10 +600,20 @@ async function rejectSuggestion(request, env) {
 
 async function runManually(request, env) {
   try {
+    const feeds = await loadFeeds(env);
+    if (!feeds.length) {
+      return jsonRes({ ok: false, error: 'No RSS feeds configured. Go to Manage Feeds and add at least one active feed, then click Save.' }, 400);
+    }
+    const activeFeeds = feeds.filter(f => f.active && f.url);
+    if (!activeFeeds.length) {
+      return jsonRes({ ok: false, error: 'No active feeds with URLs found. Enable at least one feed in Manage Feeds.' }, 400);
+    }
     await processSuggestions(env);
     const listed = await env.BUCKET.list({ prefix: PENDING_PREFIX });
-    return jsonRes({ ok: true, count: listed.objects.length });
+    const count  = listed.objects.filter(o => o.key.endsWith('.json')).length;
+    return jsonRes({ ok: true, count, message: `Scanned ${activeFeeds.length} feed(s). ${count} total suggestions pending review.` });
   } catch (err) {
+    console.error('runManually error:', err);
     return jsonRes({ error: err.message }, 500);
   }
 }

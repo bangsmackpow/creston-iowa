@@ -648,3 +648,68 @@ p { margin-bottom: 1em; }
   h1 { font-size: 2.2rem; }
   h2 { font-size: 1.7rem; }
 }
+
+/* ── WCAG 2.1 Accessibility Improvements ─────────────────────── */
+
+/* Focus-visible — keyboard nav only, not mouse clicks */
+:focus-visible {
+  outline: 3px solid var(--gold, #c9933a);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+/* Remove default focus for mouse users */
+:focus:not(:focus-visible) { outline: none; }
+
+/* Skip nav link */
+.skip-nav {
+  position: absolute; top: -100px; left: 12px; z-index: 9999;
+  background: var(--green-deep, #1a3a2a); color: white;
+  padding: 10px 20px; border-radius: 0 0 8px 8px;
+  font-family: var(--font-ui, sans-serif); font-size: .88rem; font-weight: 600;
+  text-decoration: none; transition: top .15s;
+}
+.skip-nav:focus { top: 0; }
+
+/* Ensure sufficient color contrast on tags */
+.tag { font-weight: 600; }
+.tag-green { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+.tag-gold  { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+.tag-navy  { background: #d6eaf8; color: #1a3a6a; border: 1px solid #b6d4ea; }
+
+/* Minimum touch target size 44x44px */
+.btn, button, .nav-toggle, .share-btn, .doc-btn, .cat-pill {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Ensure form labels are visible */
+.form-label {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 4px;
+  display: block;
+}
+
+/* Ensure nav links have visible state */
+.nav-links a:focus-visible {
+  outline: 3px solid var(--gold, #c9933a);
+  border-radius: 4px;
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* High contrast mode support */
+@media (forced-colors: active) {
+  .btn, .cat-pill, .tag {
+    border: 2px solid ButtonText;
+  }
+}

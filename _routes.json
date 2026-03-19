@@ -1,6 +1,7 @@
 {
   "version": 1,
   "include": [
+    "/",
     "/css/theme.css",
     "/sitemap.xml",
     "/media/*",
@@ -29,7 +30,9 @@
     "/events",
     "/events/*",
     "/directory",
-    "/directory/*"
+    "/directory/*",
+    "/bulletin",
+    "/bulletin/*"
   ],
   "exclude": [
     "/js/*",
