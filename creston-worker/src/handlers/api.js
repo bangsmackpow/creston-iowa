@@ -12,7 +12,7 @@
  * POST   /api/jobs/:slug/restore      → move job back to active/
  */
 
-import { isAuthenticated } from '../auth.js';
+import { getAuthUser } from '../db/auth-d1.js';
 import { getSiteConfig, buildThemeCSS } from '../db/site.js';
 import { listContent, getContent, putContent, deleteContent, moveContent, findBySlug } from '../r2.js';
 import { parseMarkdown } from '../markdown.js';
@@ -50,7 +50,8 @@ export async function handleApi(request, env, url) {
     });
   }
 
-  if (!isAuthenticated(request, env)) {
+  const user = await getAuthUser(request, env);
+  if (!user) {
     return jsonResponse({ error: 'Unauthorized' }, 401);
   }
 
