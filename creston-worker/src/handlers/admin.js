@@ -3,6 +3,9 @@
  */
 
 import { getAuthUser, createUserSession, destroySession } from '../db/auth-d1.js';
+import { handleSuggestionsAdmin } from './suggestions.js';
+import { handleNewsletterAdmin }  from './newsletter.js';
+import { handleSettings }         from './settings.js';
 import { listPages, getPageTemplate, MIGRATION_PAGES } from './pages.js';
 import { getUserByEmail, getAllUsers, createUser, updateUserPassword, updateUserActive,
          getAllCompanies, createCompany, getCompanyById, updateCompany,
@@ -28,7 +31,10 @@ export async function handleAdmin(request, env, url) {
   if (path.startsWith('/admin/users'))            return handleUsers(request, env, url, user);
   if (path.startsWith('/admin/companies'))        return handleCompanies(request, env, url, user);
   if (path.startsWith('/admin/account'))          return handleAccount(request, env, url, user);
-  if (path.startsWith('/admin/'))                 return routeContent(request, env, url, path, user);
+  if (path.startsWith('/admin/suggestions'))       return handleSuggestionsAdmin(request, env, url, user);
+  if (path.startsWith('/admin/newsletter'))        return handleNewsletterAdmin(request, env, url, user);
+  if (path.startsWith('/admin/settings'))          return handleSettings(request, env, url, user);
+  if (path.startsWith('/admin/'))                  return routeContent(request, env, url, path, user);
 
   return new Response('Not found', { status: 404 });
 }

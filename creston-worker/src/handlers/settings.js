@@ -841,17 +841,17 @@ function alertTab(cfg) {
       </div>
 
       <div class="settings-grid" style="margin-top:20px;">
-        <div class="form-group" style="grid-column:1/-1;display:flex;align-items:center;gap:16px;padding:14px 18px;background:#faf0f0;border:1.5px solid #e0a0a0;border-radius:10px;">
-          <div class="toggle-switch">
+        <label for="alert-active" class="form-group" style="grid-column:1/-1;display:flex;align-items:center;gap:16px;padding:14px 18px;background:#faf0f0;border:1.5px solid #e0a0a0;border-radius:10px;cursor:pointer;">
+          <div class="toggle-switch" style="flex-shrink:0;">
             <input type="checkbox" name="alert.active" id="alert-active" ${a.active ? 'checked' : ''}
-                   onchange="toggleAlertPreview()">
+                   onchange="toggleAlertPreview()" style="opacity:0;width:0;height:0;position:absolute;">
             <span class="toggle-slider"></span>
           </div>
           <div>
             <strong style="font-family:sans-serif;font-size:.9rem;color:#333;">Alert Active</strong>
             <div style="font-family:sans-serif;font-size:.78rem;color:#888;">When ON, the banner shows on every page of your site immediately after saving.</div>
           </div>
-        </div>
+        </label>
 
         <div class="form-group">
           <label class="form-label">Alert Level</label>
@@ -881,15 +881,14 @@ function alertTab(cfg) {
         </div>
         <div class="form-group">
           <label class="form-label">Dismissible</label>
-          <div class="feature-row" style="border:none;padding:0;cursor:default;">
-            <div class="feature-info">
-              <span>Allow visitors to dismiss the banner</span>
-            </div>
-            <div class="toggle-switch">
-              <input type="checkbox" name="alert.dismissible" ${a.dismissible!==false?'checked':''}>
+          <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
+            <span style="font-family:sans-serif;font-size:.88rem;color:#555;">Allow visitors to dismiss the banner</span>
+            <div class="toggle-switch" style="flex-shrink:0;margin-left:16px;">
+              <input type="checkbox" name="alert.dismissible" ${a.dismissible!==false?'checked':''}
+                     style="opacity:0;width:0;height:0;position:absolute;">
               <span class="toggle-slider"></span>
             </div>
-          </div>
+          </label>
           <small>Dismissal is per-session — the banner reappears on next visit.</small>
         </div>
       </div>
