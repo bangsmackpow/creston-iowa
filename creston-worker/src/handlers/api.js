@@ -24,6 +24,7 @@ const TYPE_MAP = {
   food:        'food',
   attractions: 'attractions',
   pages:       'pages',
+  meetings:    'meetings',
 };
 
 export async function handleApi(request, env, url) {

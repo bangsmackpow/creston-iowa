@@ -7,6 +7,7 @@
 import { listContent, findBySlug } from '../r2.js';
 import { renderShell, escHtml, adSlot } from '../shell.js';
 import { getSiteConfig } from '../db/site.js';
+import { shareBar } from './meetings.js';
 
 export async function handleAttractions(request, env, url) {
   const slug = url.pathname.replace(/^\/attractions\/?/, '').split('/').filter(Boolean)[0];
@@ -73,7 +74,9 @@ async function renderAttractionDetail(request, env, slug) {
             </div>
           </div>
         </div>
-        <a href="/attractions" class="btn btn-outline mt-3">← Back to Attractions</a>
+        ${shareBar((cfg.url || 'https://creston-iowa.com') + '/attractions/' + item.slug, m.name || item.slug, m.summary || (m.name + " - Creston, Iowa"))}
+
+              <a href="/attractions" class="btn btn-outline mt-3">← Back to Attractions</a>
       </div>
     </section>`;
 

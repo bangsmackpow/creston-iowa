@@ -3,7 +3,7 @@
   "tagline": "The Crest of Iowa",
   "description": "Your community hub for local news, dining, attractions, jobs, and everything Union County, Iowa.",
   "url": "https://creston-iowa.com",
-  "logo_text": "🌾",
+  "logo_text": "\ud83c\udf3e",
   "logo_image": "",
   "email_general": "hello@creston-iowa.com",
   "email_news": "news@creston-iowa.com",
@@ -25,43 +25,138 @@
   "font_body": "Source Serif 4",
   "font_ui": "DM Sans",
   "navigation": [
-    { "label": "Home",        "href": "/",            "show": true,  "highlight": false },
-    { "label": "About",       "href": "/pages/about.html", "show": true,  "highlight": false },
-    { "label": "Dining",      "href": "/food",         "show": true,  "highlight": false },
-    { "label": "Attractions", "href": "/attractions",  "show": true,  "highlight": false },
-    { "label": "News",        "href": "/news",         "show": true,  "highlight": false },
-    { "label": "Government",  "href": "/pages/government.html", "show": true, "highlight": false },
-    { "label": "Chamber",     "href": "/pages/chamber.html",    "show": true, "highlight": false },
-    { "label": "Jobs",        "href": "/jobs",         "show": true,  "highlight": true  },
-    { "label": "Contact",     "href": "/contact",      "show": true,  "highlight": false }
+    {
+      "label": "Home",
+      "href": "/",
+      "show": true,
+      "highlight": false
+    },
+    {
+      "label": "About",
+      "href": "/about",
+      "show": true,
+      "highlight": false
+    },
+    {
+      "label": "Dining",
+      "href": "/food",
+      "show": true,
+      "highlight": false
+    },
+    {
+      "label": "Attractions",
+      "href": "/attractions",
+      "show": true,
+      "highlight": false
+    },
+    {
+      "label": "News",
+      "href": "/news",
+      "show": true,
+      "highlight": false
+    },
+    {
+      "label": "Government",
+      "href": "/government",
+      "show": true,
+      "highlight": false
+    },
+    {
+      "label": "Meetings",
+      "href": "/meetings",
+      "show": true,
+      "highlight": false
+    },
+    {
+      "label": "Chamber",
+      "href": "/chamber",
+      "show": true,
+      "highlight": false
+    },
+    {
+      "label": "Jobs",
+      "href": "/jobs",
+      "show": true,
+      "highlight": true
+    },
+    {
+      "label": "Contact",
+      "href": "/contact",
+      "show": true,
+      "highlight": false
+    }
   ],
   "homepage_sections": [
-    { "id": "hero",        "show": true,  "order": 1 },
-    { "id": "quicklinks",  "show": true,  "order": 2 },
-    { "id": "news",        "show": true,  "order": 3 },
-    { "id": "about",       "show": true,  "order": 4 },
-    { "id": "dining",      "show": true,  "order": 5 },
-    { "id": "attractions", "show": true,  "order": 6 },
-    { "id": "jobs",        "show": true,  "order": 7 },
-    { "id": "chamber",     "show": true,  "order": 8 }
+    {
+      "id": "hero",
+      "show": true,
+      "order": 1
+    },
+    {
+      "id": "quicklinks",
+      "show": true,
+      "order": 2
+    },
+    {
+      "id": "news",
+      "show": true,
+      "order": 3
+    },
+    {
+      "id": "about",
+      "show": true,
+      "order": 4
+    },
+    {
+      "id": "dining",
+      "show": true,
+      "order": 5
+    },
+    {
+      "id": "attractions",
+      "show": true,
+      "order": 6
+    },
+    {
+      "id": "jobs",
+      "show": true,
+      "order": 7
+    },
+    {
+      "id": "chamber",
+      "show": true,
+      "order": 8
+    }
   ],
   "hero_headline": "The Crest of Iowa",
-  "hero_subheadline": "Where the Burlington Railroad crested the prairie between two great rivers — and a community put down roots that run just as deep.",
-  "hero_badge": "🌾 Population 7,500 · Union County, Iowa",
+  "hero_subheadline": "Where the Burlington Railroad crested the prairie between two great rivers \u2014 and a community put down roots that run just as deep.",
+  "hero_badge": "\ud83c\udf3e Population 7,500 \u00b7 Union County, Iowa",
   "hero_cta_primary_label": "Explore Creston",
   "hero_cta_primary_href": "/attractions",
   "hero_cta_secondary_label": "Find Restaurants",
   "hero_cta_secondary_href": "/food",
   "hero_stats": [
-    { "value": "1868",   "label": "Founded"         },
-    { "value": "50+",    "label": "Murals"           },
-    { "value": "2,100+", "label": "Acres of Lakes"   },
-    { "value": "7,500",  "label": "Residents"        }
+    {
+      "value": "1868",
+      "label": "Founded"
+    },
+    {
+      "value": "50+",
+      "label": "Murals"
+    },
+    {
+      "value": "2,100+",
+      "label": "Acres of Lakes"
+    },
+    {
+      "value": "7,500",
+      "label": "Residents"
+    }
   ],
-  "footer_tagline": "The Crest of Iowa — a proud railroad heritage city nestled in the rolling hills of Union County.",
+  "footer_tagline": "The Crest of Iowa \u2014 a proud railroad heritage city nestled in the rolling hills of Union County.",
   "footer_copyright": "",
   "footer_disclaimer": "Independent community site. Not affiliated with City of Creston government.",
-  "seo_title_template": "{page} — Creston, Iowa",
+  "seo_title_template": "{page} \u2014 Creston, Iowa",
   "seo_default_image": "",
   "google_analytics_id": "",
   "google_search_console": "",

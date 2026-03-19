@@ -7,6 +7,7 @@
 import { listContent, findBySlug } from '../r2.js';
 import { renderShell, escHtml, adSlot } from '../shell.js';
 import { getSiteConfig } from '../db/site.js';
+import { shareBar } from './meetings.js';
 import { formatDate } from '../markdown.js';
 
 export async function handleNews(request, env, url) {
@@ -90,6 +91,8 @@ async function renderNewsDetail(request, env, slug) {
               <div class="markdown-body">${article.html}</div>
             </div>
             <div class="flex gap-2 mt-3">
+              ${shareBar((cfg.url || 'https://creston-iowa.com') + '/news/' + article.slug, m.title || article.slug, m.summary || m.title)}
+
               <a href="/news" class="btn btn-outline">← Back to News</a>
             </div>
           </article>

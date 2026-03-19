@@ -45,6 +45,8 @@ export async function renderShell({
   <meta property="og:url"         content="${escHtml(cfg.url || '')}">
   <meta name="twitter:card"       content="summary_large_image">
   <title>${escHtml(pageTitle)}</title>
+  ${cfg.favicon ? `<link rel="icon" href="/media/${escHtml(cfg.favicon)}" type="image/png">
+  <link rel="shortcut icon" href="/media/${escHtml(cfg.favicon)}">` : '<link rel="icon" href="/favicon.ico">'}
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="${fonts}" rel="stylesheet">
@@ -78,6 +80,27 @@ ${buildNav(navItems, cfg, activeNav)}
 <main>${content}</main>
 ${buildFooter(cfg)}
 <script>
+  async function subscribeNewsletter(e) {
+    e.preventDefault();
+    const email = document.getElementById('footer-email').value;
+    const msg   = document.getElementById('footer-subscribe-msg');
+    msg.textContent = '⏳ Subscribing...';
+    try {
+      const r = await fetch('/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const d = await r.json();
+      if (r.ok && d.ok) {
+        msg.textContent = '✅ Subscribed! Thank you.';
+        document.getElementById('footer-email').value = '';
+      } else {
+        msg.textContent = '❌ ' + (d.error || 'Error. Please try again.');
+      }
+    } catch(e) { msg.textContent = '❌ Network error. Please try again.'; }
+  }
+
   const nav=document.getElementById('site-nav');
   if(nav) window.addEventListener('scroll',()=>nav.classList.toggle('scrolled',window.scrollY>20));
   const tog=document.getElementById('nav-toggle'),mob=document.getElementById('mobile-menu');
@@ -93,7 +116,7 @@ ${buildFooter(cfg)}
 // ── Nav ────────────────────────────────────────────────────────
 function buildNav(navItems, cfg, activeNav) {
   const logo = cfg.logo_image
-    ? `<img src="/media/${escHtml(cfg.logo_image)}" alt="${escHtml(cfg.name)}" style="height:36px;width:auto;">`
+    ? `<img src="/media/${escHtml(cfg.logo_image)}" alt="${escHtml(cfg.name)}" style="height:36px;width:auto;object-fit:contain;">`
     : `<div class="logo-icon">${escHtml(cfg.logo_text || '🌾')}</div>`;
 
   const desktop = navItems.map(n => {
@@ -142,6 +165,19 @@ function buildFooter(cfg) {
         <h3>${escHtml(cfg.name || 'My Town')}</h3>
         <p>${escHtml(cfg.footer_tagline || cfg.description || '')}</p>
         ${socials ? `<div class="social-links">${socials}</div>` : ''}
+        <div class="footer-subscribe">
+          <p style="font-size:.82rem;opacity:.8;margin:12px 0 8px;">Get community updates:</p>
+          <form onsubmit="subscribeNewsletter(event)" style="display:flex;gap:6px;">
+            <input type="email" placeholder="your@email.com" id="footer-email"
+                   style="flex:1;padding:8px 12px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:white;border-radius:6px;font-size:.82rem;"
+                   required>
+            <button type="submit"
+                    style="padding:8px 14px;background:var(--gold);color:white;border:none;border-radius:6px;font-size:.82rem;font-weight:600;cursor:pointer;flex-shrink:0;">
+              Subscribe
+            </button>
+          </form>
+          <div id="footer-subscribe-msg" style="font-size:.75rem;margin-top:6px;min-height:1em;opacity:.8;"></div>
+        </div>
       </div>
       <div class="footer-col"><h4>Explore</h4><ul>${links(col1)}</ul></div>
       <div class="footer-col"><h4>More</h4><ul>${links(col2)}</ul></div>

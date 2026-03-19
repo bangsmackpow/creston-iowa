@@ -22,6 +22,7 @@ export async function handleAdmin(request, env, url) {
 
   if (path === '/admin' || path === '/admin/')    return renderDashboard(env, user);
   if (path.startsWith('/admin/pages'))            return handlePages(request, env, url, user);
+  if (path.startsWith('/admin/meetings'))         return handleMeetingsAdmin(request, env, url, user);
   if (path.startsWith('/admin/media'))            return handleMediaAdmin(request, env, url, user);
   if (path.startsWith('/admin/users'))            return handleUsers(request, env, url, user);
   if (path.startsWith('/admin/companies'))        return handleCompanies(request, env, url, user);
@@ -158,7 +159,9 @@ async function renderDashboard(env, user) {
     <a href="/admin/users/new"       class="action-btn" style="background:#2e4163;">+ Invite User</a>
     <a href="/admin/pages/new"        class="action-btn" style="background:#2a5a7a;">📄 New Page</a>
     <a href="/admin/media"            class="action-btn" style="background:#5a3a7a;">🖼️ Media Library</a>
-    <a href="/admin/settings"        class="action-btn" style="background:#444444;">⚙️ Site Settings</a>` : `
+    <a href="/admin/meetings/new"      class="action-btn" style="background:#2a6a5a;">📅 New Meeting</a>
+    <a href="/admin/newsletter/new"    class="action-btn" style="background:#1a3a6a;">📧 New Campaign</a>
+    <a href="/admin/settings"          class="action-btn" style="background:#444444;">⚙️ Site Settings</a>` : `
     <a href="/admin/jobs/new" class="action-btn btn-jobs">+ Post a Job</a>
     <a href="/admin/account"  class="action-btn" style="background:#2e4163;">⚙️ My Account</a>`;
 
@@ -765,6 +768,8 @@ function adminPage(title, body, user) {
       <a href="/admin/users">👥 Users</a>
       <a href="/admin/pages">📄 Pages</a>
       <a href="/admin/media">🖼️ Media</a>
+      <a href="/admin/meetings">📅 Meetings</a>
+      <a href="/admin/newsletter">📧 Newsletter</a>
       <a href="/admin/settings">⚙️ Settings</a>` : ''}
     </nav>
     <div class="admin-header-right">
@@ -1321,4 +1326,217 @@ async function handleMediaAdmin(request, env, url, user) {
       .media-actions { display: flex; gap: 4px; padding: 6px 8px; border-top: 1px solid #f0f0f0; }
     </style>
   `, user);
+}
+
+// ── Meetings Admin ─────────────────────────────────────────────
+async function handleMeetingsAdmin(request, env, url, user) {
+  if (user.role === 'company_admin') return new Response('Forbidden', { status: 403 });
+  const path  = url.pathname;
+  const parts = path.replace('/admin/meetings', '').replace(/^\//, '').split('/');
+  const slug  = parts[0];
+  const action = parts[1];
+
+  if (path === '/admin/meetings/new') {
+    if (request.method === 'POST') return processMeetingPost(request, env, 'new');
+    return renderMeetingEditor(env, null, user);
+  }
+
+  if (slug && action === 'edit') {
+    if (request.method === 'POST') return processMeetingPost(request, env, slug);
+    return renderMeetingEditor(env, slug, user);
+  }
+
+  if (slug && action === 'delete' && request.method === 'POST') {
+    await env.BUCKET.delete(`meetings/${slug}.md`);
+    return new Response(null, { status: 302, headers: { Location: '/admin/meetings' } });
+  }
+
+  // List meetings
+  const listed = await env.BUCKET.list({ prefix: 'meetings/' });
+  const meetings = [];
+  for (const obj of listed.objects.filter(o => o.key.endsWith('.md'))) {
+    const file = await env.BUCKET.get(obj.key);
+    if (!file) continue;
+    const raw  = await file.text();
+    const meta = parseSimpleFm(raw);
+    meetings.push({ slug: obj.key.replace('meetings/', '').replace('.md', ''), key: obj.key, meta });
+  }
+  meetings.sort((a, b) => (b.meta.date || '').localeCompare(a.meta.date || ''));
+
+  const rows = meetings.map(m => `
+    <tr>
+      <td>
+        <strong>${escapeHtml(m.meta.title || m.slug)}</strong>
+      </td>
+      <td>${escapeHtml(m.meta.date || '—')}</td>
+      <td>${escapeHtml(m.meta.type || '—')}</td>
+      <td><span class="tbl-btn tbl-btn-${m.meta.status === 'completed' ? 'ok' : m.meta.status === 'cancelled' ? 'danger' : ''}">${escapeHtml(m.meta.status || 'upcoming')}</span></td>
+      <td class="action-col">
+        <a href="/admin/meetings/${m.slug}/edit" class="tbl-btn">Edit</a>
+        <a href="/meetings/${m.slug}" target="_blank" class="tbl-btn tbl-btn-view">View</a>
+        <form method="POST" action="/admin/meetings/${m.slug}/delete" style="display:inline;"
+              onsubmit="return confirm('Delete this meeting?')">
+          <button type="submit" class="tbl-btn tbl-btn-danger">Delete</button>
+        </form>
+      </td>
+    </tr>`).join('');
+
+  return adminPage('📅 Meetings', `
+    <div class="list-header">
+      <h2>Meetings (${meetings.length})</h2>
+      <a href="/admin/meetings/new" class="btn-admin-primary">+ New Meeting</a>
+    </div>
+    <table class="admin-table">
+      <thead><tr><th>Title</th><th>Date</th><th>Type</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="5" style="text-align:center;color:#888;padding:32px;">No meetings yet. <a href="/admin/meetings/new">Add one →</a></td></tr>'}</tbody>
+    </table>
+  `, user);
+}
+
+async function renderMeetingEditor(env, slug, user) {
+  let existingContent = '';
+  if (slug) {
+    const file = await env.BUCKET.get(`meetings/${slug}.md`);
+    if (file) existingContent = await file.text();
+  }
+
+  const today   = new Date().toISOString().split('T')[0];
+  const template = `---
+title: City Council Regular Meeting
+date: ${today}
+time: "6:00 PM"
+location: City Hall, 116 W Adams St, Creston, IA
+type: council
+status: upcoming
+agenda_pdf:
+minutes_pdf:
+summary: Regular monthly city council meeting.
+---
+
+## Agenda
+
+*Agenda will be posted 24 hours before the meeting.*
+
+## Meeting Notes
+
+*Minutes will be added after the meeting.*
+`;
+
+  const tpl    = slug ? existingContent : template;
+  const isEdit = !!slug;
+
+  return adminPage(isEdit ? `Edit Meeting: ${slug}` : 'New Meeting', `
+    <div class="editor-header">
+      <a href="/admin/meetings" class="back-link">← Back to Meetings</a>
+      <h2>📅 ${isEdit ? `Edit: ${escapeHtml(slug)}` : 'New Meeting'}</h2>
+    </div>
+    <div class="editor-layout">
+      <div class="editor-main">
+        <div class="form-row" style="margin-bottom:12px;">
+          <label class="form-label">Slug (URL-friendly, e.g. 2025-03-15-council)</label>
+          <input type="text" id="slug-input" class="form-input"
+                 value="${escapeHtml(slug || '')}" placeholder="2025-03-15-city-council"
+                 ${isEdit ? 'readonly style="background:#f5f5f5;color:#888;"' : ''}>
+        </div>
+        <div style="background:#e8f2eb;border:1.5px solid #4a8c5c;border-radius:8px;padding:12px 16px;margin-bottom:12px;font-family:sans-serif;font-size:.82rem;color:#1a3a2a;">
+          💡 <strong>Tip:</strong> Use a date-based slug like <code>2025-03-15-council</code> so meetings sort chronologically.
+          Upload PDFs in <a href="/admin/media" target="_blank">Media Library</a> then paste the path (e.g. <code>/media/docs/agenda.pdf</code>) into the frontmatter fields.
+        </div>
+        <div class="editor-toolbar">
+          <button type="button" onclick="ins('**','**')"><strong>B</strong></button>
+          <button type="button" onclick="ins('*','*')"><em>I</em></button>
+          <button type="button" onclick="ins('## ','')">H2</button>
+          <button type="button" onclick="ins('### ','')">H3</button>
+          <button type="button" onclick="ins('- ','')">• List</button>
+          <span class="toolbar-sep"></span>
+          <button type="button" onclick="resetTpl()" style="color:#c9933a;">↺ Template</button>
+        </div>
+        <textarea id="md-editor" class="md-editor">${escapeHtml(tpl)}</textarea>
+        <div class="editor-actions">
+          <button onclick="saveMeeting()" class="btn-admin-primary btn-save">
+            ${isEdit ? '💾 Save Changes' : '📅 Publish Meeting'}
+          </button>
+          ${isEdit ? `<a href="/meetings/${escapeHtml(slug)}" target="_blank" class="btn-admin-secondary">🔗 View Live</a>` : ''}
+        </div>
+        <div id="status" style="margin-top:12px;font-family:sans-serif;font-size:.9rem;"></div>
+      </div>
+      <div class="editor-sidebar">
+        <div class="preview-panel">
+          <div class="preview-header">Preview</div>
+          <div id="preview" class="preview-body markdown-body"></div>
+        </div>
+      </div>
+    </div>
+    <script>
+      const TOKEN = sessionStorage.getItem('admin_token') || '';
+      const IS_EDIT = ${isEdit};
+      const ORIG = '${escapeHtml(slug || '')}';
+      const TPL = ${JSON.stringify(template)};
+      const ed = document.getElementById('md-editor');
+      const prev = document.getElementById('preview');
+      const si = document.getElementById('slug-input');
+      const st = document.getElementById('status');
+
+      ed.addEventListener('input', render); render();
+
+      function render() {
+        let h = ed.value
+          .replace(/^### (.+)$/gm,'<h3>$1</h3>').replace(/^## (.+)$/gm,'<h2>$1</h2>')
+          .replace(/\\*\\*(.+?)\\*\\*/g,'<strong>$1</strong>').replace(/\\*(.+?)\\*/g,'<em>$1</em>')
+          .replace(/^---[\\s\\S]*?---\\n?/,'<div class="frontmatter-notice">📋 Frontmatter</div>\\n')
+          .replace(/^- (.+)$/gm,'<li>$1</li>')
+          .split('\\n\\n').map(b => { b=b.trim(); if(!b) return ''; if(/^<(h[1-6]|li|div)/.test(b)) return b; return '<p>'+b.replace(/\\n/g,'<br>')+'</p>'; }).join('\\n');
+        prev.innerHTML = h;
+      }
+
+      function ins(a, b) {
+        const s=ed.selectionStart, e=ed.selectionEnd, sel=ed.value.slice(s,e);
+        ed.value=ed.value.slice(0,s)+a+sel+b+ed.value.slice(e);
+        ed.selectionStart=s+a.length; ed.selectionEnd=e+a.length; ed.focus(); render();
+      }
+
+      function resetTpl() { if(confirm('Reset to template?')) { ed.value=TPL; render(); } }
+
+      async function saveMeeting() {
+        const slug = si ? si.value.trim() : ORIG;
+        const content = ed.value.trim();
+        if (!slug) { alert('Enter a slug.'); return; }
+        if (!content) { alert('Content is empty.'); return; }
+        st.textContent = '⏳ Saving...'; st.style.color = '#888';
+        const method = IS_EDIT ? 'PUT' : 'POST';
+        const apiUrl = IS_EDIT ? '/api/content/meetings/' + ORIG : '/api/content/meetings';
+        const body   = IS_EDIT ? { content } : { slug, content };
+        try {
+          const r = await fetch(apiUrl, {
+            method,
+            headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+TOKEN },
+            body: JSON.stringify(body),
+          });
+          if (r.ok) {
+            st.textContent = IS_EDIT ? '✅ Saved!' : '📅 Published!';
+            st.style.color = '#2d5a3d';
+            if (!IS_EDIT) setTimeout(() => { window.location.href = '/admin/meetings'; }, 1400);
+          } else {
+            let m = r.status; try { const j=await r.json(); m=j.error||m; } catch {}
+            st.textContent = '❌ Error: '+m; st.style.color = '#b84040';
+          }
+        } catch(e) { st.textContent = '❌ '+e.message; st.style.color = '#b84040'; }
+      }
+
+      ed.addEventListener('keydown', e => { if((e.metaKey||e.ctrlKey)&&e.key==='s'){e.preventDefault();saveMeeting();} });
+    </script>
+  `, user);
+}
+
+async function processMeetingPost(request, env, slugOrNew) {
+  const body = await request.json().catch(() => ({}));
+  if (!body.content) return new Response(JSON.stringify({ error: 'content required' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+  const slug = slugOrNew === 'new' ? sanitizeSlug(body.slug || '') : slugOrNew;
+  if (!slug) return new Response(JSON.stringify({ error: 'slug required' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+  await env.BUCKET.put(`meetings/${slug}.md`, body.content, {
+    httpMetadata: { contentType: 'text/markdown; charset=utf-8' }
+  });
+  return new Response(JSON.stringify({ ok: true, key: `meetings/${slug}.md` }), {
+    headers: { 'Content-Type': 'application/json' }
+  });
 }

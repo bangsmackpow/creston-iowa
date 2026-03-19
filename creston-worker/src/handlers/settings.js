@@ -356,6 +356,22 @@ function generalTab(cfg) {
           <input type="text" name="logo_text" class="form-input" value="${e(cfg.logo_text)}" placeholder="🌾">
           <small>Single emoji shown in the nav. Leave blank if using a logo image.</small>
         </div>
+        <div class="form-group">
+          <label class="form-label">Logo Image (PNG/SVG/WebP)</label>
+          ${cfg.logo_image
+            ? `<div style="margin-bottom:8px;"><img src="/media/${e(cfg.logo_image)}" style="height:48px;border:1.5px solid #ddd;border-radius:6px;padding:4px;background:white;" alt="Logo"></div>`
+            : ''}
+          <input type="text" name="logo_image" class="form-input" value="${e(cfg.logo_image || '')}" placeholder="images/logo.png">
+          <small>R2 key of image uploaded to Media Library. Leave blank to use emoji. <a href="/admin/media" target="_blank">Upload in Media Library →</a></small>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Favicon</label>
+          ${cfg.favicon
+            ? `<div style="margin-bottom:8px;"><img src="/media/${e(cfg.favicon)}" style="height:32px;width:32px;border:1.5px solid #ddd;border-radius:4px;padding:2px;background:white;object-fit:contain;" alt="Favicon"></div>`
+            : ''}
+          <input type="text" name="favicon" class="form-input" value="${e(cfg.favicon || '')}" placeholder="images/favicon.png">
+          <small>R2 key of 32×32 or 64×64 PNG/ICO uploaded to Media Library. Served at /favicon.ico. <a href="/admin/media" target="_blank">Upload →</a></small>
+        </div>
       </div>
     </div>
 

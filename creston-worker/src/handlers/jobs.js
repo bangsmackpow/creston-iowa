@@ -7,6 +7,7 @@
 import { listContent, findBySlug } from '../r2.js';
 import { renderShell, escHtml, adSlot } from '../shell.js';
 import { getSiteConfig } from '../db/site.js';
+import { shareBar } from './meetings.js';
 import { formatDate, isExpired } from '../markdown.js';
 
 export async function handleJobs(request, env, url) {
@@ -169,6 +170,8 @@ async function renderJobDetail(request, env, slug) {
                 ${job.html}
               </div>
 
+              \${shareBar((cfg.url || 'https://creston-iowa.com') + '/jobs/' + job.slug, m.title || job.slug, m.summary || (m.company + ' is hiring in ' + (m.location || 'Creston, IA')))}
+
               <div class="job-detail-footer">
                 ${applyBtn}
                 <a href="/jobs" class="btn btn-outline">← Back to Job Board</a>
@@ -197,7 +200,7 @@ async function renderJobDetail(request, env, slug) {
 
   return htmlResponse(await renderShell({
     title:      m.title || job.slug,
-    description: `${m.title} at ${m.company} in ${m.location || 'Creston, IA'}. ${m.type || ''} position.`,
+    description: `${m.title} at ${m.company} in ${m.location || 'Creston, IA'}. ${m.type || ''} ${m.pay ? '· ' + m.pay : ''} position.`,
     eyebrow:    '💼 Job Listing',
     heading:    m.title || job.slug,
     subheading: `${m.company || ''} · ${m.location || 'Creston, IA'}`,
