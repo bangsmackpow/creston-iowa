@@ -40,12 +40,12 @@ export async function listContent(env, prefix) {
 
   // Sort: featured first, then newest first
   results.sort((a, b) => {
-  if (a.meta.featured && !b.meta.featured) return -1;
-  if (!a.meta.featured && b.meta.featured) return 1;
-  const dateA = String(a.meta.posted || a.modified || '');
-  const dateB = String(b.meta.posted || b.modified || '');
-  return dateB.localeCompare(dateA);
-});
+    if (a.meta.featured && !b.meta.featured) return -1;
+    if (!a.meta.featured && b.meta.featured) return 1;
+    const dateA = a.meta.posted || a.modified || '';
+    const dateB = b.meta.posted || b.modified || '';
+    return dateB.localeCompare(dateA);
+  });
 
   return results;
 }

@@ -25,7 +25,9 @@
         <a href="/attractions">Attractions</a>
         <a href="/news">News</a>
         <a href="/government">Government</a>
+        <a href="/meetings">Meetings</a>
         <a href="/chamber">Chamber</a>
+        <a href="/directory">Directory</a>
         <a href="/jobs" class="nav-jobs">🧳 Job Board</a>
       </div>
       <button class="nav-toggle" id="nav-toggle" aria-label="Toggle menu">
@@ -40,7 +42,9 @@
     <a href="/attractions">🎈 Attractions</a>
     <a href="/news">📰 News</a>
     <a href="/government">🏛️ Government</a>
+    <a href="/meetings">📅 Meetings</a>
     <a href="/chamber">🤝 Chamber</a>
+    <a href="/directory">🏪 Directory</a>
     <a href="/jobs" class="nav-jobs">🧳 Post a Job / Find Work</a>
   </div>
   `;

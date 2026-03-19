@@ -54,6 +54,7 @@ export async function renderShell({
   <link rel="stylesheet" href="/css/pages.css">
   <link rel="stylesheet" href="/css/dynamic.css">
   <link rel="stylesheet" href="/css/theme.css">
+  <link rel="stylesheet" href="/css/print.css" media="print">
   <style>
     :root {
       --green-deep:   ${cssVar(themeCSS, '--primary',      '#1a3a2a')};
@@ -68,7 +69,7 @@ export async function renderShell({
   </style>
   ${cfg.google_analytics_id ? gaScript(cfg.google_analytics_id) : ''}
 </head>
-<body>
+<body data-print-date="${new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'})}">
 ${cfg.alert && cfg.alert.active ? `
 <div class="emergency-alert alert-${escHtml(cfg.alert.level||'warning')}" id="emergency-alert"
      style="display:${cfg.alert.dismissible?'flex':'flex'}">

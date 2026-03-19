@@ -16,6 +16,7 @@ import { handlePage }        from './handlers/pages.js';
 import { handleSitemap }     from './handlers/sitemap.js';
 import { handleMeetings }    from './handlers/meetings.js';
 import { handleEvents }      from './handlers/events.js';
+import { handleDirectory }    from './handlers/directory.js';
 import { handleNewsletterAdmin, handleSubscribe } from './handlers/newsletter.js';
 import { handleSuggestionsAdmin, processSuggestions } from './handlers/suggestions.js';
 import { getAuthUser }       from './db/auth-d1.js';
@@ -92,6 +93,7 @@ export default {
       if (path.startsWith('/attractions')) return await handleAttractions(request, env, url);
       if (path.startsWith('/meetings'))    return await handleMeetings(request, env, url);
       if (path.startsWith('/events'))      return await handleEvents(request, env, url);
+      if (path.startsWith('/directory'))  return await handleDirectory(request, env, url);
 
       // Dynamic CMS pages
       const slug = path.replace(/^\//, '').replace(/\/$/, '');

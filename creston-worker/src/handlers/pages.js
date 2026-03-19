@@ -64,7 +64,7 @@ export async function handlePage(request, env, slug) {
     }), {
       headers: {
         'Content-Type':  'text/html; charset=utf-8',
-        'Cache-Control': 'public, max-age=3600, stale-while-revalidate=300',
+        'Cache-Control': 'public, max-age=0, must-revalidate',
       }
     });
 
@@ -358,7 +358,7 @@ The Creston Chamber represents the interests of local businesses, organizes comm
 
 **Job Board** — Post openings and find local talent on the [Creston Job Board](/jobs).
 
-**Advertise Locally** — Reach Creston residents through targeted ads on creston-iowa.com. [See ad options](/pages/advertise.html).
+**Advertise Locally** — Reach Creston residents through targeted ads on creston-iowa.com. [See ad options](/advertise).
 
 ## Government Resources
 

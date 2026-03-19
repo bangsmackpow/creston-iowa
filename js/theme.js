@@ -1,92 +1,154 @@
 /**
  * theme.js
- * Fetches site config from /api/config and applies CSS variables.
- * Runs on every page including static ones (homepage).
- * Uses localStorage to cache theme for instant application on repeat visits.
+ * Applies dynamic CSS variables from site config.
+ * Loaded in <head> of every page for instant theme application.
+ * Fetches /api/config and caches in localStorage for 60 seconds.
  */
 (function() {
-  const CACHE_KEY = 'creston_theme';
-  const CACHE_TTL = 60 * 1000; // 1 minute
+  const CACHE_KEY = 'creston_theme_v2';
+  const CACHE_TTL = 60 * 1000; // 60 seconds
 
   function applyTheme(data) {
     if (!data || !data.themeCSS) return;
 
+    // Parse the CSS variable string
     const vars = {};
     data.themeCSS.split(';').forEach(pair => {
-      const [k, v] = pair.split(':');
-      if (k && v) vars[k.trim()] = v.trim();
+      const idx = pair.indexOf(':');
+      if (idx === -1) return;
+      const k = pair.slice(0, idx).trim();
+      const v = pair.slice(idx + 1).trim();
+      if (k && v) vars[k] = v;
     });
 
-    const root = document.documentElement;
+    if (!vars['--primary']) return;
 
-    if (vars['--primary'])      root.style.setProperty('--green-deep',  vars['--primary']);
-    if (vars['--secondary'])    root.style.setProperty('--green-mid',   vars['--secondary']);
-    if (vars['--accent'])       root.style.setProperty('--gold',        vars['--accent']);
-    if (vars['--accent-light']) root.style.setProperty('--gold-light',  vars['--accent-light']);
-    if (vars['--bg'])           root.style.setProperty('--cream',       vars['--bg']);
-
-    // Also update nav background which is hardcoded in style.css
-    if (vars['--primary']) {
-      const style = document.getElementById('dynamic-theme') || document.createElement('style');
-      style.id = 'dynamic-theme';
-      style.textContent = `
-        :root {
-          --green-deep: ${vars['--primary']} !important;
-          --green-mid:  ${vars['--secondary'] || vars['--primary']} !important;
-          --gold:       ${vars['--accent'] || '#c9933a'} !important;
-          --gold-light: ${vars['--accent-light'] || '#f0c878'} !important;
-          --cream:      ${vars['--bg'] || '#faf8f3'} !important;
-          --navy:       ${vars['--primary']} !important;
-        }
-        .site-nav { background: rgba(${hexToRgb(vars['--primary'])}, 0.97) !important; }
-        .site-nav.scrolled { background: rgba(${hexToRgb(vars['--primary'])}, 0.99) !important; }
-        .page-hero { background: ${vars['--primary']} !important; }
-        .btn-primary { background: ${vars['--secondary'] || vars['--primary']} !important; border-color: ${vars['--secondary'] || vars['--primary']} !important; }
-        .btn-gold { background: ${vars['--accent'] || '#c9933a'} !important; border-color: ${vars['--accent'] || '#c9933a'} !important; }
-        .site-footer { background: ${vars['--primary']} !important; }
-        h1, h2, h3, h4, h5 { color: ${vars['--primary']} !important; }
-        .eyebrow { color: ${vars['--accent'] || '#c9933a'} !important; }
-        a { color: ${vars['--secondary'] || vars['--primary']}; }
-      `;
-      if (!document.getElementById('dynamic-theme')) {
-        document.head.appendChild(style);
-      }
+    // Inject or update a <style> block with !important overrides
+    let style = document.getElementById('creston-dynamic-theme');
+    if (!style) {
+      style = document.createElement('style');
+      style.id = 'creston-dynamic-theme';
+      document.head.appendChild(style);
     }
+
+    const primary      = vars['--primary']       || '#1a3a2a';
+    const secondary    = vars['--secondary']     || '#2d5a3d';
+    const accent       = vars['--accent']        || '#c9933a';
+    const accentLight  = vars['--accent-light']  || '#f0c878';
+    const bg           = vars['--bg']            || '#faf8f3';
+    const rgb          = hexToRgb(primary);
+
+    style.textContent = `
+      :root {
+        --green-deep:  ${primary}     !important;
+        --green-mid:   ${secondary}   !important;
+        --gold:        ${accent}      !important;
+        --gold-light:  ${accentLight} !important;
+        --cream:       ${bg}          !important;
+        --navy:        ${primary}     !important;
+        --navy-mid:    ${secondary}   !important;
+      }
+      .site-nav {
+        background: rgba(${rgb}, 0.97) !important;
+      }
+      .site-nav.scrolled {
+        background: rgba(${rgb}, 0.99) !important;
+      }
+      .page-hero {
+        background: ${primary} !important;
+      }
+      .hero {
+        background: linear-gradient(135deg, rgba(${rgb},0.96) 0%, rgba(${rgb},0.88) 100%) !important;
+      }
+      .site-footer {
+        background: ${primary} !important;
+      }
+      .bg-green-deep {
+        background: ${primary} !important;
+      }
+      .btn-primary, .btn-primary:visited {
+        background: ${secondary} !important;
+        border-color: ${secondary} !important;
+      }
+      .btn-primary:hover {
+        background: ${primary} !important;
+        border-color: ${primary} !important;
+      }
+      .btn-gold {
+        background: ${accent} !important;
+        border-color: ${accent} !important;
+      }
+      .eyebrow {
+        color: ${accent} !important;
+      }
+      .nav-jobs {
+        background: ${accent} !important;
+      }
+      h1, h2, h3, h4, h5 {
+        color: ${primary} !important;
+      }
+      .page-hero h1,
+      .hero-title,
+      .about-strip h2,
+      .jobs-promo h2 {
+        color: white !important;
+      }
+      a {
+        color: ${secondary};
+      }
+      a:hover {
+        color: ${accent};
+      }
+      .quick-link:hover,
+      .attract-card:hover {
+        border-color: ${secondary} !important;
+        color: ${primary} !important;
+      }
+      .widget-header,
+      .admin-header {
+        background: ${primary} !important;
+      }
+      .filter-btn.active {
+        background: ${secondary} !important;
+        border-color: ${secondary} !important;
+      }
+      .tag-green {
+        background: color-mix(in srgb, ${primary} 10%, white) !important;
+        color: ${secondary} !important;
+      }
+    `;
   }
 
   function hexToRgb(hex) {
     if (!hex) return '26,58,42';
-    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    const clean  = hex.replace('#', '');
+    const result = /^([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(clean);
     return result
-      ? `${parseInt(result[1], 16)},${parseInt(result[2], 16)},${parseInt(result[3], 16)}`
+      ? `${parseInt(result[1],16)},${parseInt(result[2],16)},${parseInt(result[3],16)}`
       : '26,58,42';
   }
 
-  async function loadTheme() {
-    // Try cache first for instant application
-    try {
-      const cached = localStorage.getItem(CACHE_KEY);
-      if (cached) {
-        const { data, ts } = JSON.parse(cached);
-        applyTheme(data);
-        // If cache is fresh enough, don't refetch
-        if (Date.now() - ts < CACHE_TTL) return;
-      }
-    } catch(e) {}
+  // Clear old cache key
+  try { localStorage.removeItem('creston_theme'); } catch(e) {}
 
-    // Fetch fresh config
-    try {
-      const r    = await fetch('/api/config');
-      const data = await r.json();
+  // 1. Apply from localStorage immediately (synchronous — no flash)
+  try {
+    const cached = localStorage.getItem(CACHE_KEY);
+    if (cached) {
+      const { data } = JSON.parse(cached);
       applyTheme(data);
-
-      // Cache it
-      localStorage.setItem(CACHE_KEY, JSON.stringify({ data, ts: Date.now() }));
-    } catch(e) {
-      // Network error — cached version already applied above, no action needed
     }
-  }
+  } catch(e) {}
 
-  // Apply immediately if cached, then refresh
-  loadTheme();
+  // 2. Fetch fresh config asynchronously
+  fetch('/api/config')
+    .then(r => r.json())
+    .then(data => {
+      applyTheme(data);
+      try {
+        localStorage.setItem(CACHE_KEY, JSON.stringify({ data, ts: Date.now() }));
+      } catch(e) {}
+    })
+    .catch(() => {});
+
 })();

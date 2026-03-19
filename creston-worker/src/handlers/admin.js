@@ -4,6 +4,7 @@
 
 import { getAuthUser, createUserSession, destroySession } from '../db/auth-d1.js';
 import { handleSuggestionsAdmin } from './suggestions.js';
+import { adminPage as _ap }         from './admin.js';
 import { handleNewsletterAdmin }  from './newsletter.js';
 import { handleSettings }         from './settings.js';
 import { listPages, getPageTemplate, MIGRATION_PAGES } from './pages.js';
@@ -27,6 +28,7 @@ export async function handleAdmin(request, env, url) {
   if (path.startsWith('/admin/pages'))            return handlePages(request, env, url, user);
   if (path.startsWith('/admin/meetings'))         return handleMeetingsAdmin(request, env, url, user);
   if (path.startsWith('/admin/events'))           return handleEventsAdmin(request, env, url, user);
+  if (path.startsWith('/admin/directory'))        return handleDirectoryAdmin(request, env, url, user);
   if (path.startsWith('/admin/media'))            return handleMediaAdmin(request, env, url, user);
   if (path.startsWith('/admin/users'))            return handleUsers(request, env, url, user);
   if (path.startsWith('/admin/companies'))        return handleCompanies(request, env, url, user);
@@ -127,7 +129,7 @@ async function renderDashboard(env, user) {
   let statsHtml = '';
 
   if (sup) {
-    const [jobs, food, news, attr, cos, us, pgs, evts] = await Promise.all([
+    const [jobs, food, news, attr, cos, us, pgs, evts, dir] = await Promise.all([
       env.BUCKET.list({ prefix: 'jobs/active/' }),
       env.BUCKET.list({ prefix: 'food/' }),
       env.BUCKET.list({ prefix: 'news/' }),
@@ -136,9 +138,11 @@ async function renderDashboard(env, user) {
       getAllUsers(env.DB),
       env.BUCKET.list({ prefix: 'pages/' }),
       env.BUCKET.list({ prefix: 'events/' }),
+      env.BUCKET.list({ prefix: 'directory/' }),
     ]);
     const pagesCount  = (pgs.objects || []).filter(o => o.key.endsWith('.md')).length;
     const eventsCount = (evts.objects || []).filter(o => o.key.endsWith('.md')).length;
+    const dirCount    = (dir.objects  || []).filter(o => o.key.endsWith('.md')).length;
     statsHtml = statGrid([
       { href:'/admin/jobs',        icon:'💼', num: countMd(jobs),   label:'Active Jobs' },
       { href:'/admin/food',        icon:'🍽️', num: countMd(food),   label:'Restaurants' },
@@ -148,6 +152,7 @@ async function renderDashboard(env, user) {
       { href:'/admin/users',       icon:'👥', num: (us.results||[]).length,  label:'Users' },
       { href:'/admin/pages',       icon:'📄', num: pagesCount,                     label:'Pages' },
       { href:'/admin/events',      icon:'🎈', num: eventsCount,                    label:'Events' },
+      { href:'/admin/directory',   icon:'🏪', num: dirCount,                       label:'Directory' },
     ]);
   } else {
     const prefix = `jobs/active/${user.company_slug || 'default'}/`;
@@ -171,6 +176,7 @@ async function renderDashboard(env, user) {
     <a href="/admin/media"            class="action-btn" style="background:#5a3a7a;">🖼️ Media Library</a>
     <a href="/admin/meetings/new"      class="action-btn" style="background:#2a6a5a;">📅 New Meeting</a>
     <a href="/admin/events/new"        class="action-btn" style="background:#2a5a7a;">🎈 New Event</a>
+    <a href="/admin/directory/new"      class="action-btn" style="background:#5a3a2a;">🏪 Add Business</a>
     <a href="/admin/suggestions"       class="action-btn" style="background:#4a2a7a;">🤖 AI Suggestions</a>
     <a href="/admin/newsletter/new"    class="action-btn" style="background:#1a3a6a;">📧 New Campaign</a>
     <a href="/admin/settings"          class="action-btn" style="background:#444444;">⚙️ Site Settings</a>` : `
@@ -566,7 +572,8 @@ async function renderContentList(env, type, user) {
 
   const icons = { jobs:'💼', food:'🍽️', news:'📰', attractions:'🎈' };
   const rows  = allItems.map(item => `
-    <tr class="${item.isExpired ? 'expired-row' : ''}">
+    <tr class="${item.isExpired ? 'expired-row' : ''}" data-key="${escapeHtml(item.key)}" data-slug="${escapeHtml(item.slug)}">
+      <td style="width:32px;"><input type="checkbox" class="row-check" onchange="updateBulkBar()" value="${escapeHtml(item.key)}"></td>
       <td>
         <strong>${escapeHtml(item.meta.title || item.meta.name || item.slug)}</strong>
         ${item.isExpired ? '<span class="badge-expired">expired</span>' : ''}
@@ -593,15 +600,24 @@ async function renderContentList(env, type, user) {
       <h2>${cap(type)} (${allItems.length})</h2>
       <a href="/admin/${type}/new" class="btn-admin-primary">+ Add New</a>
     </div>
-    <table class="admin-table">
+    <div class="bulk-action-bar" id="bulk-bar" style="display:none;">
+      <span id="bulk-count" style="font-family:sans-serif;font-size:.85rem;color:#555;"></span>
+      <div style="display:flex;gap:8px;">
+        ${type === 'jobs' ? `<button onclick="bulkAction('expire')" class="tbl-btn tbl-btn-warn">Expire Selected</button>` : ''}
+        <button onclick="bulkAction('delete')" class="tbl-btn tbl-btn-danger">Delete Selected</button>
+        <button onclick="clearSelection()" class="tbl-btn">Clear</button>
+      </div>
+    </div>
+    <table class="admin-table" id="content-table">
       <thead><tr>
+        <th style="width:32px;"><input type="checkbox" id="select-all" onchange="toggleAll(this)" title="Select all"></th>
         <th>Title / Name</th>
         ${type === 'jobs' && sup ? '<th>Company</th>' : ''}
         <th>Category</th>
         <th>Date</th>
         <th>Actions</th>
       </tr></thead>
-      <tbody>${rows || noItems(type === 'jobs' && sup ? 5 : 4, `No ${type} yet`)}</tbody>
+      <tbody>${rows || noItems(type === 'jobs' && sup ? 6 : 5, `No ${type} yet`)}</tbody>
     </table>
     <script>
       const TOKEN = sessionStorage.getItem('admin_token') || '';
@@ -620,6 +636,58 @@ async function renderContentList(env, type, user) {
         if(!confirm('Permanently delete? Cannot be undone.')) return;
         const r = await fetch('/api/content/'+type+'/'+encodeURIComponent(slug),{method:'DELETE',headers:H,body:JSON.stringify({key})});
         if(r.ok) location.reload(); else alert('Failed: '+await r.text());
+      }
+
+      // ── Bulk operations ──────────────────────────────
+      function getChecked() {
+        return Array.from(document.querySelectorAll('.row-check:checked')).map(el => ({
+          key:  el.value,
+          slug: el.closest('tr').dataset.slug,
+        }));
+      }
+
+      function updateBulkBar() {
+        const checked = getChecked();
+        const bar     = document.getElementById('bulk-bar');
+        const count   = document.getElementById('bulk-count');
+        bar.style.display   = checked.length > 0 ? 'flex' : 'none';
+        count.textContent   = checked.length + ' item' + (checked.length===1?'':'s') + ' selected';
+        document.getElementById('select-all').indeterminate =
+          checked.length > 0 && checked.length < document.querySelectorAll('.row-check').length;
+      }
+
+      function toggleAll(cb) {
+        document.querySelectorAll('.row-check').forEach(el => el.checked = cb.checked);
+        updateBulkBar();
+      }
+
+      function clearSelection() {
+        document.querySelectorAll('.row-check').forEach(el => el.checked = false);
+        document.getElementById('select-all').checked = false;
+        updateBulkBar();
+      }
+
+      async function bulkAction(action) {
+        const items = getChecked();
+        if (!items.length) return;
+        const label = action === 'delete' ? 'permanently delete' : action;
+        if (!confirm('Are you sure you want to ' + label + ' ' + items.length + ' item(s)?')) return;
+
+        let done = 0;
+        for (const item of items) {
+          try {
+            if (action === 'delete') {
+              await fetch('/api/content/' + TYPE + '/' + encodeURIComponent(item.slug),
+                {method:'DELETE', headers:H, body:JSON.stringify({key:item.key})});
+            } else if (action === 'expire') {
+              await fetch('/api/jobs/' + encodeURIComponent(item.slug) + '/expire',
+                {method:'POST', headers:H, body:JSON.stringify({key:item.key})});
+            }
+            done++;
+          } catch(e) { console.error('Bulk action error:', e); }
+        }
+        alert('Done: ' + done + ' of ' + items.length + ' items ' + (action==='delete'?'deleted':'expired') + '.');
+        location.reload();
       }
     </script>
   `, user);
@@ -782,6 +850,7 @@ export function adminPage(title, body, user) {
       <a href="/admin/media">🖼️ Media</a>
       <a href="/admin/meetings">📅 Meetings</a>
       <a href="/admin/events">🎈 Events</a>
+      <a href="/admin/directory">🏪 Directory</a>
       <a href="/admin/newsletter">📧 Newsletter</a>
       <a href="/admin/suggestions">🤖 AI Suggestions</a>
       <a href="/admin/settings">⚙️ Settings</a>` : ''}
@@ -1747,5 +1816,186 @@ async function processEventPost(request, env, slugOrNew) {
   const slug = slugOrNew === 'new' ? sanitizeSlug(body.slug || '') : slugOrNew;
   if (!slug) return new Response(JSON.stringify({ error: 'slug required' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
   await env.BUCKET.put(`events/${slug}.md`, body.content, { httpMetadata: { contentType: 'text/markdown; charset=utf-8' } });
+  return new Response(JSON.stringify({ ok: true }), { headers: { 'Content-Type': 'application/json' } });
+}
+
+// ── Directory Admin ────────────────────────────────────────────
+async function handleDirectoryAdmin(request, env, url, user) {
+  if (user.role !== 'superadmin') return new Response('Forbidden', { status: 403 });
+  const path  = url.pathname;
+  const parts = path.replace('/admin/directory', '').replace(/^\//, '').split('/');
+  const slug  = parts[0];
+  const action = parts[1];
+
+  if (path === '/admin/directory/new') {
+    if (request.method === 'POST') return processDirectoryPost(request, env, 'new');
+    return renderDirectoryEditor(env, null, user);
+  }
+  if (slug && action === 'edit') {
+    if (request.method === 'POST') return processDirectoryPost(request, env, slug);
+    return renderDirectoryEditor(env, slug, user);
+  }
+  if (slug && action === 'delete' && request.method === 'POST') {
+    await env.BUCKET.delete(`directory/${slug}.md`);
+    return new Response(null, { status: 302, headers: { Location: '/admin/directory' } });
+  }
+
+  const listed = await env.BUCKET.list({ prefix: 'directory/' });
+  const businesses = [];
+  for (const obj of listed.objects.filter(o => o.key.endsWith('.md'))) {
+    const file = await env.BUCKET.get(obj.key);
+    if (!file) continue;
+    const meta = parseSimpleFm(await file.text());
+    businesses.push({ slug: obj.key.replace('directory/', '').replace('.md', ''), key: obj.key, meta });
+  }
+  businesses.sort((a, b) => (a.meta.name || '').localeCompare(b.meta.name || ''));
+
+  const rows = businesses.map(b => `
+    <tr>
+      <td><strong>${escapeHtml(b.meta.name || b.slug)}</strong></td>
+      <td>${escapeHtml(b.meta.category || '—')}</td>
+      <td>${escapeHtml(b.meta.phone || '—')}</td>
+      <td><span class="tbl-btn tbl-btn-${b.meta.featured==='true'||b.meta.featured===true?'ok':''}">${b.meta.featured==='true'||b.meta.featured===true?'⭐ Featured':'—'}</span></td>
+      <td class="action-col">
+        <a href="/admin/directory/${b.slug}/edit" class="tbl-btn">Edit</a>
+        <a href="/directory/${b.slug}" target="_blank" class="tbl-btn tbl-btn-view">View</a>
+        <form method="POST" action="/admin/directory/${b.slug}/delete" style="display:inline;"
+              onsubmit="return confirm('Remove this business listing?')">
+          <button type="submit" class="tbl-btn tbl-btn-danger">Delete</button>
+        </form>
+      </td>
+    </tr>`).join('');
+
+  return adminPage('🏪 Business Directory', `
+    <div class="list-header">
+      <h2>Business Directory (${businesses.length})</h2>
+      <a href="/admin/directory/new" class="btn-admin-primary">+ Add Business</a>
+    </div>
+    <table class="admin-table">
+      <thead><tr><th>Name</th><th>Category</th><th>Phone</th><th>Featured</th><th>Actions</th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="5" style="text-align:center;color:#888;padding:32px;">No businesses yet. <a href="/admin/directory/new">Add one →</a></td></tr>'}</tbody>
+    </table>
+    <p style="font-family:sans-serif;font-size:.82rem;color:#888;margin-top:12px;">
+      Public directory at <a href="/directory" target="_blank">/directory</a>
+    </p>
+  `, user);
+}
+
+async function renderDirectoryEditor(env, slug, user) {
+  let existing = '';
+  if (slug) {
+    const file = await env.BUCKET.get(`directory/${slug}.md`);
+    if (file) existing = await file.text();
+  }
+
+  const tpl = `---
+name: Business Name
+category: retail
+tagline: Short tagline shown under the name
+phone: "(641) 782-1234"
+email: info@business.com
+website: https://business.com
+address: 123 Main St, Creston, IA 50801
+hours: "Mon-Fri 9am-5pm, Sat 10am-3pm"
+featured: false
+image:
+logo:
+social_facebook:
+social_instagram:
+tags: [locally-owned]
+summary: One sentence description shown in the directory listing.
+---
+
+## About
+
+Describe the business here. History, services, what makes them special.
+
+## Services
+
+- Service or product one
+- Service or product two
+
+## Contact
+
+Phone, email, website, and directions.
+`;
+  const tplContent = slug ? existing : tpl;
+  const isEdit     = !!slug;
+
+  return adminPage(isEdit ? `Edit: ${slug}` : 'Add Business', `
+    <div class="editor-header">
+      <a href="/admin/directory" class="back-link">← Back to Directory</a>
+      <h2>🏪 ${isEdit ? `Edit: ${escapeHtml(slug)}` : 'Add Business'}</h2>
+    </div>
+    <div class="alert-box" style="background:#e8f2eb;border:1.5px solid #4a8c5c;border-radius:8px;padding:10px 16px;margin-bottom:16px;font-family:sans-serif;font-size:.82rem;color:#1a3a2a;">
+      💡 <strong>Categories:</strong> retail · healthcare · professional · dining · services · nonprofit · other<br>
+      Upload images first via <a href="/admin/media" target="_blank">Media Library</a> then paste the path (e.g. <code>/media/images/logo.png</code>).
+    </div>
+    <div class="editor-layout">
+      <div class="editor-main">
+        <div class="form-row" style="margin-bottom:12px;">
+          <label class="form-label">Slug (URL-friendly, e.g. creston-hardware)</label>
+          <input type="text" id="slug-input" class="form-input"
+                 value="${escapeHtml(slug || '')}" placeholder="business-name"
+                 ${isEdit ? 'readonly style="background:#f5f5f5;color:#888;"' : ''}>
+        </div>
+        <div class="editor-toolbar">
+          <button type="button" onclick="ins('**','**')"><strong>B</strong></button>
+          <button type="button" onclick="ins('*','*')"><em>I</em></button>
+          <button type="button" onclick="ins('## ','')">H2</button>
+          <button type="button" onclick="ins('### ','')">H3</button>
+          <button type="button" onclick="ins('- ','')">• List</button>
+          <button type="button" onclick="ins('[text](',')')">🔗 Link</button>
+          <span class="toolbar-sep"></span>
+          <button type="button" onclick="resetTpl()" style="color:#c9933a;">↺ Template</button>
+        </div>
+        <textarea id="md-editor" class="md-editor">${escapeHtml(tplContent)}</textarea>
+        <div class="editor-actions">
+          <button onclick="saveBiz()" class="btn-admin-primary btn-save">
+            ${isEdit ? '💾 Save Changes' : '🏪 Add to Directory'}
+          </button>
+          ${isEdit ? `<a href="/directory/${escapeHtml(slug)}" target="_blank" class="btn-admin-secondary">🔗 View Live</a>` : ''}
+        </div>
+        <div id="status" style="margin-top:12px;font-family:sans-serif;font-size:.9rem;"></div>
+      </div>
+      <div class="editor-sidebar">
+        <div class="preview-panel">
+          <div class="preview-header">Preview</div>
+          <div id="preview" class="preview-body markdown-body"></div>
+        </div>
+      </div>
+    </div>
+    <script>
+      const TOKEN=sessionStorage.getItem('admin_token')||'';
+      const IS_EDIT=${isEdit},ORIG='${escapeHtml(slug||'')}',TPL=${JSON.stringify(tpl)};
+      const ed=document.getElementById('md-editor'),prev=document.getElementById('preview');
+      const si=document.getElementById('slug-input'),st=document.getElementById('status');
+      ed.addEventListener('input',render);render();
+      function render(){let h=ed.value.replace(/^### (.+)$/gm,'<h3>$1</h3>').replace(/^## (.+)$/gm,'<h2>$1</h2>').replace(/\\*\\*(.+?)\\*\\*/g,'<strong>$1</strong>').replace(/\\*(.+?)\\*/g,'<em>$1</em>').replace(/^---[\\s\\S]*?---\\n?/,'<div class="frontmatter-notice">📋 Frontmatter</div>\\n').replace(/^- (.+)$/gm,'<li>$1</li>').split('\\n\\n').map(b=>{b=b.trim();if(!b)return'';if(/^<(h[1-6]|li|div)/.test(b))return b;return'<p>'+b.replace(/\\n/g,'<br>')+'</p>';}).join('\\n');prev.innerHTML=h;}
+      function ins(a,b){const s=ed.selectionStart,e=ed.selectionEnd,sel=ed.value.slice(s,e);ed.value=ed.value.slice(0,s)+a+sel+b+ed.value.slice(e);ed.selectionStart=s+a.length;ed.selectionEnd=e+a.length;ed.focus();render();}
+      function resetTpl(){if(confirm('Reset to template?')){ed.value=TPL;render();}}
+      async function saveBiz(){
+        const slug=si?si.value.trim():ORIG,content=ed.value.trim();
+        if(!slug){alert('Enter a slug.');return;}if(!content){alert('Empty.');return;}
+        st.textContent='⏳ Saving...';st.style.color='#888';
+        const r=await fetch(IS_EDIT?'/api/content/directory/'+ORIG:'/api/content/directory',{
+          method:IS_EDIT?'PUT':'POST',
+          headers:{'Content-Type':'application/json','Authorization':'Bearer '+TOKEN},
+          body:JSON.stringify(IS_EDIT?{content}:{slug,content})
+        });
+        if(r.ok){st.textContent=IS_EDIT?'✅ Saved!':'🏪 Added!';st.style.color='#2d5a3d';if(!IS_EDIT)setTimeout(()=>{location.href='/admin/directory';},1400);}
+        else{let m=r.status;try{const j=await r.json();m=j.error||m;}catch{}st.textContent='❌ Error: '+m;st.style.color='#b84040';}
+      }
+      ed.addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key==='s'){e.preventDefault();saveBiz();}});
+    </script>
+  `, user);
+}
+
+async function processDirectoryPost(request, env, slugOrNew) {
+  const body = await request.json().catch(() => ({}));
+  if (!body.content) return new Response(JSON.stringify({ error: 'content required' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+  const slug = slugOrNew === 'new' ? sanitizeSlug(body.slug || '') : slugOrNew;
+  if (!slug) return new Response(JSON.stringify({ error: 'slug required' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+  await env.BUCKET.put(`directory/${slug}.md`, body.content, { httpMetadata: { contentType: 'text/markdown; charset=utf-8' } });
   return new Response(JSON.stringify({ ok: true }), { headers: { 'Content-Type': 'application/json' } });
 }

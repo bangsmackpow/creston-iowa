@@ -74,6 +74,12 @@
       "highlight": false
     },
     {
+      "label": "Directory",
+      "href": "/directory",
+      "show": true,
+      "highlight": false
+    },
+    {
       "label": "Jobs",
       "href": "/jobs",
       "show": true,

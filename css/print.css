@@ -1,0 +1,248 @@
+/* =====================================================
+   PRINT STYLESHEET — creston-iowa.com
+   Loaded on all pages via shell.js + static HTML.
+   Hides UI chrome, formats content for paper.
+   ===================================================== */
+
+@media print {
+
+  /* ── Hide everything non-essential ─────────────────── */
+  .site-nav,
+  .mobile-menu,
+  .emergency-alert,
+  .site-footer,
+  .share-bar,
+  .ad-slot,
+  .sidebar-widget,
+  .filter-btn,
+  .cat-filters,
+  .cat-pill,
+  .tab-bar,
+  .editor-toolbar,
+  .editor-actions,
+  .btn-admin-primary,
+  .btn-admin-secondary,
+  .btn-admin-secondary,
+  .admin-header,
+  .admin-sidebar,
+  .back-link,
+  .tbl-btn,
+  .action-col,
+  .list-header a,
+  .page-hero .eyebrow,
+  #nav-toggle,
+  #emergency-alert,
+  .events-sidebar,
+  .meetings-sidebar,
+  .dir-sidebar,
+  .jobs-sidebar,
+  .food-sidebar,
+  nav,
+  aside,
+  form,
+  button,
+  .breadcrumb,
+  .pagination,
+  .subscribe-widget,
+  .footer-subscribe { display: none !important; }
+
+  /* ── Page setup ─────────────────────────────────────── */
+  @page {
+    margin: 1.5cm 2cm;
+    size: letter portrait;
+  }
+
+  @page :first {
+    margin-top: 2cm;
+  }
+
+  /* ── Base reset ─────────────────────────────────────── */
+  *,
+  *::before,
+  *::after {
+    box-shadow: none !important;
+    text-shadow: none !important;
+    background: white !important;
+    color: black !important;
+    border-color: #ccc !important;
+  }
+
+  body {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 11pt;
+    line-height: 1.6;
+    color: black !important;
+    background: white !important;
+  }
+
+  /* ── Typography ─────────────────────────────────────── */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: Georgia, serif;
+    color: black !important;
+    page-break-after: avoid;
+    margin-top: 1em;
+    margin-bottom: 0.3em;
+  }
+
+  h1 { font-size: 20pt; border-bottom: 2pt solid black; padding-bottom: 6pt; }
+  h2 { font-size: 15pt; border-bottom: 1pt solid #ccc; padding-bottom: 4pt; }
+  h3 { font-size: 13pt; }
+
+  p, li { orphans: 3; widows: 3; }
+
+  a { color: black !important; text-decoration: underline; }
+  a[href^="http"]:after { content: " (" attr(href) ")"; font-size: 9pt; color: #555 !important; }
+  a[href^="mailto"]:after { content: " (" attr(href) ")"; font-size: 9pt; }
+  a[href^="tel"]:after { content: none; }
+  a.btn:after, a.doc-btn:after { content: none; }
+
+  /* ── Layout — collapse to single column ────────────── */
+  .container { max-width: 100% !important; padding: 0 !important; margin: 0 !important; }
+  .layout-sidebar,
+  .meeting-detail-layout,
+  .event-detail-layout,
+  .biz-detail-layout,
+  .dir-layout,
+  .events-layout,
+  .meetings-layout { display: block !important; }
+
+  .section { padding: 0 !important; margin: 0 !important; }
+  .section + .section { margin-top: 1.5em !important; }
+
+  /* ── Page hero — simplified header ─────────────────── */
+  .page-hero {
+    background: white !important;
+    padding: 0 0 12pt !important;
+    border-bottom: 2pt solid black;
+    margin-bottom: 16pt;
+  }
+  .page-hero h1 {
+    font-size: 22pt;
+    color: black !important;
+    border: none;
+    margin: 0;
+    padding: 0;
+  }
+  .page-hero .lead {
+    font-size: 11pt;
+    font-style: italic;
+    color: #444 !important;
+    margin-top: 4pt;
+  }
+
+  /* ── Print header (site name + date) ────────────────── */
+  body::before {
+    content: "creston-iowa.com · Printed " attr(data-print-date);
+    display: block;
+    font-family: Arial, sans-serif;
+    font-size: 8pt;
+    color: #888 !important;
+    border-bottom: 1pt solid #ccc;
+    padding-bottom: 4pt;
+    margin-bottom: 12pt;
+  }
+
+  /* ── Meetings ────────────────────────────────────────── */
+  .meeting-card {
+    border: 1pt solid #ccc !important;
+    border-radius: 0 !important;
+    padding: 12pt !important;
+    margin-bottom: 12pt !important;
+    page-break-inside: avoid;
+  }
+  .meeting-date { font-size: 9pt; font-weight: bold; margin-bottom: 4pt; }
+  .meeting-title { font-size: 13pt; font-weight: bold; margin-bottom: 4pt; }
+  .meeting-doc-buttons { margin: 8pt 0; }
+  .doc-btn { display: inline-block !important; margin-right: 8pt; font-size: 9pt; }
+  .meeting-status-badge { display: none !important; }
+
+  /* ── Events ──────────────────────────────────────────── */
+  .event-card {
+    border: 1pt solid #ccc !important;
+    border-radius: 0 !important;
+    padding: 8pt 12pt !important;
+    margin-bottom: 8pt !important;
+    display: block !important;
+    page-break-inside: avoid;
+  }
+  .event-date-box {
+    display: inline-block !important;
+    background: black !important;
+    color: white !important;
+    padding: 4pt 8pt !important;
+    margin-bottom: 4pt;
+    font-weight: bold;
+    font-size: 10pt;
+  }
+  .event-date-box * { color: white !important; }
+
+  /* ── Jobs ────────────────────────────────────────────── */
+  .job-card {
+    border: 1pt solid #ccc !important;
+    border-radius: 0 !important;
+    padding: 10pt 12pt !important;
+    margin-bottom: 10pt !important;
+    page-break-inside: avoid;
+  }
+  .job-detail-card { border: none !important; padding: 0 !important; }
+  .tag { display: inline-block !important; border: 1pt solid #ccc !important; padding: 1pt 5pt !important; font-size: 8pt !important; margin-right: 4pt; }
+  .apply-btn-print::after { content: " — Apply at: " attr(data-url); font-size: 9pt; }
+
+  /* ── Business directory ──────────────────────────────── */
+  .biz-card, .biz-featured-card {
+    display: block !important;
+    border: 1pt solid #ccc !important;
+    border-radius: 0 !important;
+    padding: 8pt 12pt !important;
+    margin-bottom: 8pt !important;
+    text-decoration: none !important;
+    page-break-inside: avoid;
+  }
+  .dir-grid { display: block !important; }
+  .biz-card-img, .biz-featured-img, .biz-hero-img { display: none !important; }
+  .biz-name { font-size: 12pt; font-weight: bold; }
+  .biz-info-row { display: flex !important; gap: 8pt; padding: 4pt 0; border-bottom: 0.5pt solid #eee !important; }
+
+  /* ── Markdown content ────────────────────────────────── */
+  .markdown-body {
+    font-size: 11pt;
+    line-height: 1.65;
+  }
+  .markdown-body h1 { font-size: 16pt; }
+  .markdown-body h2 { font-size: 13pt; }
+  .markdown-body h3 { font-size: 12pt; }
+  .markdown-body table { width: 100%; border-collapse: collapse; }
+  .markdown-body th,
+  .markdown-body td { border: 0.5pt solid #ccc !important; padding: 4pt 8pt; font-size: 9pt; }
+  .markdown-body th { font-weight: bold; background: #f0f0f0 !important; }
+  .markdown-body img { max-width: 100%; page-break-inside: avoid; }
+  .markdown-body blockquote { border-left: 3pt solid #ccc; padding-left: 12pt; color: #444 !important; }
+  .markdown-body pre { border: 1pt solid #ccc; padding: 8pt; font-size: 9pt; page-break-inside: avoid; white-space: pre-wrap; }
+
+  /* ── Images ──────────────────────────────────────────── */
+  img { max-width: 100% !important; page-break-inside: avoid; }
+  .media-thumb, .media-card { display: none !important; }
+
+  /* ── Tables ──────────────────────────────────────────── */
+  .admin-table th,
+  .admin-table td { font-size: 9pt; padding: 4pt 8pt !important; border: 0.5pt solid #ccc !important; }
+  .admin-table thead th { background: #f0f0f0 !important; font-weight: bold; }
+
+  /* ── Page breaks ─────────────────────────────────────── */
+  .meeting-card,
+  .event-card,
+  .job-card,
+  .biz-card,
+  .news-article { page-break-inside: avoid; }
+
+  h2, h3 { page-break-after: avoid; }
+  .page-hero { page-break-after: avoid; }
+
+  /* ── Print-specific utility ──────────────────────────── */
+  .print-only { display: block !important; }
+  .no-print { display: none !important; }
+
+}
+
+/* Hide print-only elements on screen */
+.print-only { display: none; }
