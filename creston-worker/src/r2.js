@@ -42,9 +42,9 @@ export async function listContent(env, prefix) {
   results.sort((a, b) => {
     if (a.meta.featured && !b.meta.featured) return -1;
     if (!a.meta.featured && b.meta.featured) return 1;
-    const dateA = a.meta.posted || a.modified || '';
-    const dateB = b.meta.posted || b.modified || '';
-    return dateB.localeCompare(dateA);
+    const dateA = a.meta.posted || (a.modified ? new Date(a.modified).toISOString() : '') || '';
+    const dateB = b.meta.posted || (b.modified ? new Date(b.modified).toISOString() : '') || '';
+    return String(dateB).localeCompare(String(dateA));
   });
 
   return results;
@@ -69,9 +69,22 @@ export async function getContent(env, key) {
  * e.g. findBySlug(env, 'jobs/active', 'rn-greater-regional')
  */
 export async function findBySlug(env, prefix, slug) {
-  const key  = `${prefix}/${slug}.md`;
-  const item = await getContent(env, key);
-  return item;
+  // Try direct path first (legacy flat structure)
+  const directKey = `${prefix}/${slug}.md`;
+  const direct    = await getContent(env, directKey);
+  if (direct) return direct;
+
+  // Search in subdirectories (company-scoped jobs: jobs/active/company/slug.md)
+  const listed = await env.BUCKET.list({ prefix: `${prefix}/` });
+  for (const obj of listed.objects) {
+    if (!obj.key.endsWith('.md')) continue;
+    const filename = obj.key.split('/').pop().replace('.md', '');
+    if (filename === slug) {
+      const item = await getContent(env, obj.key);
+      if (item) return item;
+    }
+  }
+  return null;
 }
 
 /**
