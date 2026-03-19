@@ -7,6 +7,7 @@
 import { listContent, findBySlug } from '../r2.js';
 import { renderShell, escHtml, adSlot } from '../shell.js';
 import { getSiteConfig } from '../db/site.js';
+import { buildSEO } from '../seo.js';
 import { shareBar } from './meetings.js';
 
 export async function handleFood(request, env, url) {
@@ -134,9 +135,13 @@ async function renderFoodDetail(request, env, slug) {
       </div>
     </section>`;
 
+  const seo = buildSEO({ type:'food', meta:m, slug:item.slug, cfg, pageUrl:`${cfg.url||''}/food/${item.slug}`, html:item.html });
   return htmlResponse(await renderShell({
-    title:       m.name || item.slug,
-    description: `${m.name} — ${m.category || 'restaurant'} in Creston, Iowa. ${m.address || ''}`,
+    title:       seo.title,
+    description: seo.description,
+    schema:      seo.schema,
+    canonical:   seo.fullUrl,
+    ogImage:     seo.imgUrl,
     eyebrow:     '🍽️ Restaurant',
     heading:     m.name || item.slug,
     subheading:  `${m.category || ''}${m.address ? ' · ' + m.address : ''}`,

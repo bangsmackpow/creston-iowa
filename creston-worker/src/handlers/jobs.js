@@ -7,6 +7,7 @@
 import { listContent, findBySlug } from '../r2.js';
 import { renderShell, escHtml, adSlot } from '../shell.js';
 import { getSiteConfig } from '../db/site.js';
+import { buildSEO } from '../seo.js';
 import { shareBar } from './meetings.js';
 import { formatDate, isExpired } from '../markdown.js';
 
@@ -198,9 +199,13 @@ async function renderJobDetail(request, env, slug) {
       </div>
     </section>`;
 
+  const seo = buildSEO({ type:'jobs', meta:m, slug:job.slug, cfg, pageUrl:`${cfg.url||''}/jobs/${job.slug}`, html:job.html });
   return htmlResponse(await renderShell({
-    title:      m.title || job.slug,
-    description: `${m.title} at ${m.company} in ${m.location || 'Creston, IA'}. ${m.type || ''} ${m.pay ? '· ' + m.pay : ''} position.`,
+    title:       seo.title,
+    description: seo.description,
+    schema:      seo.schema,
+    canonical:   seo.fullUrl,
+    ogImage:     seo.imgUrl,
     eyebrow:    '💼 Job Listing',
     heading:    m.title || job.slug,
     subheading: `${m.company || ''} · ${m.location || 'Creston, IA'}`,

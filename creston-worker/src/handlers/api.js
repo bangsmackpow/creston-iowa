@@ -14,6 +14,7 @@
 
 import { getAuthUser } from '../db/auth-d1.js';
 import { getSiteConfig, buildThemeCSS } from '../db/site.js';
+import { saveRevision }              from '../revisions.js';
 import { listContent, getContent, putContent, deleteContent, moveContent, findBySlug } from '../r2.js';
 import { parseMarkdown } from '../markdown.js';
 
@@ -124,6 +125,26 @@ export async function handleApi(request, env, url) {
     try { body = await request.json(); } catch {}
     const key = body.key || `${prefix}/${sanitizeSlug(slug)}.md`;
     await deleteContent(env, key);
+    return jsonResponse({ ok: true });
+  }
+
+  // ── Revision history ──────────────────────────────────────
+  if (request.method === 'GET' && url.pathname.includes('/revisions/')) {
+    const { listRevisions } = await import('../revisions.js');
+    const revs = await listRevisions(env, type, slug);
+    return jsonResponse({ revisions: revs });
+  }
+
+  if (request.method === 'POST' && url.pathname.endsWith('/restore')) {
+    const body = await request.json().catch(() => ({}));
+    if (!body.revisionKey) return jsonResponse({ error: 'revisionKey required' }, 400);
+    const { getRevision } = await import('../revisions.js');
+    const revContent = await getRevision(env, body.revisionKey);
+    if (!revContent) return jsonResponse({ error: 'Revision not found' }, 404);
+    // Save current as revision before restoring
+    const existing = await env.BUCKET.get(key);
+    if (existing) await saveRevision(env, type, slug, await existing.text());
+    await putContent(env, key, revContent);
     return jsonResponse({ ok: true });
   }
 

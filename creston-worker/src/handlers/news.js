@@ -7,6 +7,7 @@
 import { listContent, findBySlug } from '../r2.js';
 import { renderShell, escHtml, adSlot } from '../shell.js';
 import { getSiteConfig } from '../db/site.js';
+import { buildSEO } from '../seo.js';
 import { shareBar } from './meetings.js';
 import { formatDate } from '../markdown.js';
 
@@ -111,9 +112,13 @@ async function renderNewsDetail(request, env, slug) {
       </div>
     </section>`;
 
+  const seo = buildSEO({ type:'news', meta:m, slug:article.slug, cfg, pageUrl:`${cfg.url||''}/news/${article.slug}`, html:article.html });
   return htmlResponse(await renderShell({
-    title:       m.title || article.slug,
-    description: m.summary || m.title || '',
+    title:       seo.title,
+    description: seo.description,
+    schema:      seo.schema,
+    canonical:   seo.fullUrl,
+    ogImage:     seo.imgUrl,
     eyebrow:     `📰 ${m.category || 'News'}`,
     heading:     m.title || article.slug,
     subheading:  m.summary || '',

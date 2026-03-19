@@ -16,6 +16,9 @@ export async function renderShell({
   activeNav   = '',
   env         = null,
   config      = null,
+  schema      = '',    // JSON-LD structured data
+  canonical   = '',    // canonical URL
+  ogImage     = '',    // page-specific OG image
 }) {
   const cfg      = config || (env ? await getSiteConfig(env) : defaultConfig());
   const themeCSS = buildThemeCSS(cfg);
@@ -43,7 +46,13 @@ export async function renderShell({
   <meta property="og:description" content="${escHtml(description || cfg.description)}">
   <meta property="og:type"        content="website">
   <meta property="og:url"         content="${escHtml(cfg.url || '')}">
-  <meta name="twitter:card"       content="summary_large_image">
+  <meta name="twitter:card"        content="summary_large_image">
+  <meta name="twitter:title"       content="${escHtml(pageTitle)}">
+  <meta name="twitter:description" content="${escHtml(description || cfg.description)}">
+  ${ogImage || cfg.seo_default_image ? `<meta name="twitter:image" content="${escHtml(ogImage || (cfg.url + cfg.seo_default_image))}">` : ''}
+  ${ogImage ? `<meta property="og:image" content="${escHtml(ogImage)}">` : cfg.seo_default_image ? `<meta property="og:image" content="${escHtml(cfg.url + cfg.seo_default_image)}">` : ''}
+  ${canonical ? `<link rel="canonical" href="${escHtml(canonical)}">` : ''}
+  ${cfg.google_search_console ? `<meta name="google-site-verification" content="${escHtml(cfg.google_search_console)}">` : ''}
   <title>${escHtml(pageTitle)}</title>
   ${cfg.favicon ? `<link rel="icon" href="/media/${escHtml(cfg.favicon)}" type="image/png">
   <link rel="shortcut icon" href="/media/${escHtml(cfg.favicon)}">` : '<link rel="icon" href="/favicon.ico">'}
@@ -68,6 +77,7 @@ export async function renderShell({
     }
   </style>
   ${cfg.google_analytics_id ? gaScript(cfg.google_analytics_id) : ''}
+  ${schema || ''}
 </head>
 <body data-print-date="${new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'})}">
 ${cfg.alert && cfg.alert.active ? `

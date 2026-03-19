@@ -757,6 +757,18 @@ async function renderEditor(env, type, slug, user) {
           <div class="preview-header">Preview</div>
           <div id="preview" class="preview-body markdown-body"></div>
         </div>
+        ${isEdit ? `
+        <div style="margin-top:16px;">
+          <div class="preview-panel">
+            <div class="preview-header" style="display:flex;justify-content:space-between;align-items:center;">
+              <span>📋 Revision History</span>
+              <button onclick="loadRevisions()" style="font-family:sans-serif;font-size:.7rem;background:none;border:1px solid #ddd;border-radius:4px;padding:2px 8px;cursor:pointer;color:#666;">↻ Refresh</button>
+            </div>
+            <div id="rev-list-inner" style="font-family:sans-serif;font-size:.82rem;color:#888;min-height:60px;">
+              <div style="padding:12px;">Loading history...</div>
+            </div>
+          </div>
+        </div>` : '<div style="margin-top:16px;padding:12px;font-family:sans-serif;font-size:.8rem;color:#aaa;">Revision history available after first save.</div>'}
       </div>
     </div>
     <script>

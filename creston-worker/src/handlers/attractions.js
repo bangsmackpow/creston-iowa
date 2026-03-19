@@ -7,6 +7,7 @@
 import { listContent, findBySlug } from '../r2.js';
 import { renderShell, escHtml, adSlot } from '../shell.js';
 import { getSiteConfig } from '../db/site.js';
+import { buildSEO } from '../seo.js';
 import { shareBar } from './meetings.js';
 
 export async function handleAttractions(request, env, url) {
@@ -80,9 +81,13 @@ async function renderAttractionDetail(request, env, slug) {
       </div>
     </section>`;
 
+  const seo = buildSEO({ type:'attractions', meta:m, slug:item.slug, cfg, pageUrl:`${cfg.url||''}/attractions/${item.slug}`, html:item.html });
   return htmlResponse(await renderShell({
-    title:       m.name || item.slug,
-    description: m.tagline || m.name || '',
+    title:       seo.title,
+    description: seo.description,
+    schema:      seo.schema,
+    canonical:   seo.fullUrl,
+    ogImage:     seo.imgUrl,
     eyebrow:     `🎈 ${m.category || 'Attraction'}`,
     heading:     m.name || item.slug,
     subheading:  m.tagline || '',
