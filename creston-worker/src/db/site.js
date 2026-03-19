@@ -109,6 +109,16 @@ export const DEFAULT_SITE_CONFIG = {
   resend_from_name:  '',      // "City Name Contact"
   maps_embed_url:    '',      // Google Maps embed URL for contact page
 
+  // Emergency alert banner
+  alert: {
+    active:      false,
+    level:       'warning',   // emergency | warning | info
+    title:       '',
+    message:     '',
+    link:        '',
+    dismissible: true,
+  },
+
   // Meta
   version:    1,
   updated_at: '',

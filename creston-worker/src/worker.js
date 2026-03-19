@@ -1,5 +1,6 @@
 /**
  * creston-iowa.com — Cloudflare Worker / CMS Engine
+ * Phase 1: AI Suggestions, Event Calendar, Emergency Alerts
  */
 
 import { handleJobs }        from './handlers/jobs.js';
@@ -14,10 +15,13 @@ import { handleMedia, handleMediaUpload, handleMediaList, handleMediaDelete } fr
 import { handlePage }        from './handlers/pages.js';
 import { handleSitemap }     from './handlers/sitemap.js';
 import { handleMeetings }    from './handlers/meetings.js';
+import { handleEvents }      from './handlers/events.js';
 import { handleNewsletterAdmin, handleSubscribe } from './handlers/newsletter.js';
+import { handleSuggestionsAdmin, processSuggestions } from './handlers/suggestions.js';
 import { getAuthUser }       from './db/auth-d1.js';
 
 export default {
+  // ── HTTP requests ────────────────────────────────────────────
   async fetch(request, env, ctx) {
     const url  = new URL(request.url);
     const path = url.pathname;
@@ -34,69 +38,62 @@ export default {
     }
 
     try {
-      // ── Favicon ───────────────────────────────────────────
+      // Favicon
       if (path === '/favicon.ico' || path === '/favicon.png') {
         const file = await env.BUCKET.get('config/favicon.png') ||
                      await env.BUCKET.get('config/favicon.ico');
-        if (file) {
-          const ext = file.httpMetadata?.contentType?.includes('png') ? 'image/png' : 'image/x-icon';
-          return new Response(file.body, {
-            headers: { 'Content-Type': ext, 'Cache-Control': 'public, max-age=86400' }
-          });
-        }
+        if (file) return new Response(file.body, {
+          headers: { 'Content-Type': file.httpMetadata?.contentType || 'image/x-icon', 'Cache-Control': 'public, max-age=86400' }
+        });
         return new Response(null, { status: 404 });
       }
 
-      // ── Theme CSS ─────────────────────────────────────────
+      // Theme CSS
       if (path === '/css/theme.css') {
         const file = await env.BUCKET.get('config/theme.css');
-        if (file) return new Response(file.body, {
-          headers: { 'Content-Type': 'text/css; charset=utf-8', 'Cache-Control': 'public, max-age=0, must-revalidate' }
-        });
-        return new Response('/* theme not generated yet */', { headers: { 'Content-Type': 'text/css; charset=utf-8' } });
+        return file
+          ? new Response(file.body, { headers: { 'Content-Type': 'text/css; charset=utf-8', 'Cache-Control': 'public, max-age=0, must-revalidate' } })
+          : new Response('/* theme not generated yet */', { headers: { 'Content-Type': 'text/css; charset=utf-8' } });
       }
 
-      // ── Sitemap ───────────────────────────────────────────
+      // Sitemap
       if (path === '/sitemap.xml') return await handleSitemap(request, env);
 
-      // ── Media ─────────────────────────────────────────────
+      // Media
       if (path.startsWith('/media/'))      return await handleMedia(request, env, url);
       if (path === '/api/media/upload')    return await handleMediaUpload(request, env);
       if (path === '/api/media/list')      return await handleMediaList(request, env, url);
       if (path === '/api/media/delete')    return await handleMediaDelete(request, env, url);
 
-      // ── Subscribe ─────────────────────────────────────────
+      // Subscribe
       if (path === '/subscribe')           return await handleSubscribe(request, env);
 
-      // ── API ───────────────────────────────────────────────
+      // API
       if (path.startsWith('/api/'))        return await handleApi(request, env, url);
 
-      // ── Settings ──────────────────────────────────────────
-      if (path.startsWith('/admin/settings')) {
+      // Auth-required admin routes
+      const authRoutes = ['/admin/settings', '/admin/newsletter', '/admin/suggestions'];
+      if (authRoutes.some(r => path.startsWith(r))) {
         const user = await getAuthUser(request, env);
         if (!user) return new Response(null, { status: 302, headers: { Location: '/admin/login' } });
-        return await handleSettings(request, env, url, user);
+        if (path.startsWith('/admin/settings'))   return await handleSettings(request, env, url, user);
+        if (path.startsWith('/admin/newsletter'))  return await handleNewsletterAdmin(request, env, url, user);
+        if (path.startsWith('/admin/suggestions')) return await handleSuggestionsAdmin(request, env, url, user);
       }
 
-      // ── Newsletter ────────────────────────────────────────
-      if (path.startsWith('/admin/newsletter')) {
-        const user = await getAuthUser(request, env);
-        if (!user) return new Response(null, { status: 302, headers: { Location: '/admin/login' } });
-        return await handleNewsletterAdmin(request, env, url, user);
-      }
-
-      // ── Admin ─────────────────────────────────────────────
+      // Admin
       if (path.startsWith('/admin'))       return await handleAdmin(request, env, url);
 
-      // ── Content routes ────────────────────────────────────
+      // Content
       if (path.startsWith('/contact'))     return await handleContact(request, env, url);
       if (path.startsWith('/jobs'))        return await handleJobs(request, env, url);
       if (path.startsWith('/food'))        return await handleFood(request, env, url);
       if (path.startsWith('/news'))        return await handleNews(request, env, url);
       if (path.startsWith('/attractions')) return await handleAttractions(request, env, url);
       if (path.startsWith('/meetings'))    return await handleMeetings(request, env, url);
+      if (path.startsWith('/events'))      return await handleEvents(request, env, url);
 
-      // ── Dynamic CMS pages ─────────────────────────────────
+      // Dynamic CMS pages
       const slug = path.replace(/^\//, '').replace(/\/$/, '');
       if (slug && !slug.includes('.') && !slug.includes('/')) {
         const page = await handlePage(request, env, slug);
@@ -109,5 +106,10 @@ export default {
       console.error('Worker error:', err);
       return new Response(`Internal error: ${err.message}`, { status: 500 });
     }
+  },
+
+  // ── Cron Trigger — runs daily at 6am ────────────────────────
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(processSuggestions(env));
   }
 };

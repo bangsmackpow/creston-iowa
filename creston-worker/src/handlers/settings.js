@@ -192,6 +192,7 @@ function settingsPage(cfg, tab, saved, user) {
     { id: 'design',       label: '🎨 Design',        },
     { id: 'navigation',   label: '🧭 Navigation',    },
     { id: 'homepage',     label: '🏠 Homepage',       },
+    { id: 'alert',        label: '🚨 Alert Banner',  },
     { id: 'seo',          label: '🔍 SEO',            },
     { id: 'features',     label: '🔧 Features',       },
     { id: 'integrations', label: '🔌 Integrations',   },
@@ -207,6 +208,7 @@ function settingsPage(cfg, tab, saved, user) {
     design:       designTab(cfg),
     navigation:   navigationTab(cfg),
     homepage:     homepageTab(cfg),
+    alert:        alertTab(cfg),
     seo:          seoTab(cfg),
     features:     featuresTab(cfg),
     integrations: integrationsTab(cfg),
@@ -820,6 +822,112 @@ function featuresTab(cfg) {
     </div>`;
 }
 
+// ── Tab: Alert Banner ─────────────────────────────────────────
+function alertTab(cfg) {
+  const a = cfg.alert || {};
+  return `
+    <div class="settings-section">
+      <h3>🚨 Emergency Alert Banner</h3>
+      <p class="settings-desc">
+        Shows a sticky banner at the top of every page. Use for emergencies, weather events,
+        water advisories, road closures, or important announcements.
+        Takes effect immediately after saving — no redeploy needed.
+      </p>
+
+      <div class="alert-preview-box alert-prev-${e(a.level||'warning')}" id="alert-preview-box">
+        <span id="alert-prev-icon">${a.level==='emergency'?'🚨':a.level==='warning'?'⚠️':'ℹ️'}</span>
+        <strong id="alert-prev-title">${e(a.title||'Alert title will appear here')}</strong>
+        <span id="alert-prev-msg">${e(a.message||'')}</span>
+      </div>
+
+      <div class="settings-grid" style="margin-top:20px;">
+        <div class="form-group" style="grid-column:1/-1;display:flex;align-items:center;gap:16px;padding:14px 18px;background:#faf0f0;border:1.5px solid #e0a0a0;border-radius:10px;">
+          <div class="toggle-switch">
+            <input type="checkbox" name="alert.active" id="alert-active" ${a.active ? 'checked' : ''}
+                   onchange="toggleAlertPreview()">
+            <span class="toggle-slider"></span>
+          </div>
+          <div>
+            <strong style="font-family:sans-serif;font-size:.9rem;color:#333;">Alert Active</strong>
+            <div style="font-family:sans-serif;font-size:.78rem;color:#888;">When ON, the banner shows on every page of your site immediately after saving.</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Alert Level</label>
+          <select name="alert.level" class="form-select" id="alert-level" onchange="updateAlertPreview()">
+            <option value="emergency" ${a.level==='emergency'?'selected':''}>🚨 Emergency (red) — urgent safety</option>
+            <option value="warning"   ${a.level==='warning'  ?'selected':''}>⚠️ Warning (amber) — important notice</option>
+            <option value="info"      ${a.level==='info'     ?'selected':''}>ℹ️ Info (green) — general announcement</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Title / Headline *</label>
+          <input type="text" name="alert.title" class="form-input" id="alert-title"
+                 value="${e(a.title||'')}" placeholder="Water Main Break on Elm Street"
+                 oninput="updateAlertPreview()">
+        </div>
+        <div class="form-group" style="grid-column:1/-1;">
+          <label class="form-label">Message (optional)</label>
+          <input type="text" name="alert.message" class="form-input" id="alert-message"
+                 value="${e(a.message||'')}" placeholder="Crews are working to restore service. Expect delays until 6pm."
+                 oninput="updateAlertPreview()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Link URL (optional)</label>
+          <input type="url" name="alert.link" class="form-input"
+                 value="${e(a.link||'')}" placeholder="https://crestoniowa.gov/news/water-update">
+          <small>Adds a "Learn more →" link to the banner.</small>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Dismissible</label>
+          <div class="feature-row" style="border:none;padding:0;cursor:default;">
+            <div class="feature-info">
+              <span>Allow visitors to dismiss the banner</span>
+            </div>
+            <div class="toggle-switch">
+              <input type="checkbox" name="alert.dismissible" ${a.dismissible!==false?'checked':''}>
+              <span class="toggle-slider"></span>
+            </div>
+          </div>
+          <small>Dismissal is per-session — the banner reappears on next visit.</small>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      function updateAlertPreview() {
+        const title = document.getElementById('alert-title').value || 'Alert title';
+        const msg   = document.getElementById('alert-message').value;
+        const level = document.getElementById('alert-level').value;
+        const box   = document.getElementById('alert-preview-box');
+        const icon  = document.getElementById('alert-prev-icon');
+        const t     = document.getElementById('alert-prev-title');
+        const m     = document.getElementById('alert-prev-msg');
+        if(t) t.textContent = title;
+        if(m) m.textContent = msg;
+        if(icon) icon.textContent = level==='emergency'?'🚨':level==='warning'?'⚠️':'ℹ️';
+        if(box) {
+          box.className = 'alert-preview-box alert-prev-'+level;
+        }
+      }
+      function toggleAlertPreview() {
+        const box = document.getElementById('alert-preview-box');
+        const active = document.getElementById('alert-active').checked;
+        if(box) box.style.opacity = active ? '1' : '0.4';
+      }
+    </script>
+    <style>
+      .alert-preview-box {
+        display:flex; align-items:center; gap:10px; padding:12px 18px; border-radius:8px;
+        font-family:sans-serif; font-size:.88rem; margin-bottom:4px; transition:all .2s;
+      }
+      .alert-prev-emergency { background:#b84040; color:white; }
+      .alert-prev-warning   { background:#c9933a; color:white; }
+      .alert-prev-info      { background:#2d5a3d; color:white; }
+    </style>`;
+}
+
 // ── Tab: Integrations ──────────────────────────────────────────
 function integrationsTab(cfg) {
   return `
@@ -938,9 +1046,24 @@ function mergeSettings(current, updates) {
       result.features = { ...current.features, ...val };
     } else if (key === 'custom_colors' && typeof val === 'object') {
       result.custom_colors = { ...current.custom_colors, ...val };
+    } else if (key === 'alert' && typeof val === 'object') {
+      result.alert = { ...current.alert, ...val };
     } else {
       result[key] = val;
     }
+  }
+
+  // Handle dot-notation alert fields from form inputs (alert.active, alert.level etc)
+  const alertFields = Object.entries(updates).filter(([k]) => k.startsWith('alert.'));
+  if (alertFields.length) {
+    result.alert = { ...(current.alert || {}), ...(result.alert || {}) };
+    for (const [k, v] of alertFields) {
+      const field = k.replace('alert.', '');
+      result.alert[field] = v;
+      delete result[k];
+    }
+    result.alert.active = result.alert.active === true || result.alert.active === 'true';
+    result.alert.dismissible = result.alert.dismissible !== false && result.alert.dismissible !== 'false';
   }
 
   // Rebuild hero_stats from named inputs

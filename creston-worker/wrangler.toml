@@ -3,36 +3,44 @@ main = "src/worker.js"
 compatibility_date = "2024-01-01"
 compatibility_flags = ["nodejs_compat"]
 
-# Routes — Worker handles these paths, static assets handle the rest
 routes = [
   { pattern = "creston-iowa.com/jobs*",        zone_name = "creston-iowa.com" },
   { pattern = "creston-iowa.com/food*",        zone_name = "creston-iowa.com" },
   { pattern = "creston-iowa.com/news*",        zone_name = "creston-iowa.com" },
   { pattern = "creston-iowa.com/attractions*", zone_name = "creston-iowa.com" },
   { pattern = "creston-iowa.com/contact*",     zone_name = "creston-iowa.com" },
+  { pattern = "creston-iowa.com/meetings*",    zone_name = "creston-iowa.com" },
+  { pattern = "creston-iowa.com/events*",      zone_name = "creston-iowa.com" },
   { pattern = "creston-iowa.com/admin*",       zone_name = "creston-iowa.com" },
   { pattern = "creston-iowa.com/api/*",        zone_name = "creston-iowa.com" },
 ]
 
-# R2 bucket
 [[r2_buckets]]
 binding = "BUCKET"
 bucket_name = "crestoniowa"
 
-# D1 database — replace database_id after running:
-#   npx wrangler d1 create creston-auth
 [[d1_databases]]
 binding       = "DB"
 database_name = "creston-auth"
 database_id   = "REPLACE_WITH_YOUR_D1_ID"
 
-# Non-secret environment variables
+# Workers AI binding — free tier, runs at the edge
+[[ai]]
+binding = "AI"
+
 [vars]
 SITE_NAME     = "Creston, Iowa"
 SITE_URL      = "https://creston-iowa.com"
 CONTACT_EMAIL = "hello@creston-iowa.com"
 CONTACT_FROM  = "contact@creston-iowa.com"
 
-# Secrets — set via: npx wrangler secret put <NAME>
-#   ADMIN_TOKEN     — random string for API Bearer auth
-#   RESEND_API_KEY  — from resend.com dashboard
+# Cron Trigger — runs AI content scanner daily at 6am
+[triggers]
+crons = ["0 6 * * *"]
+
+# Secrets: npx wrangler secret put <name>
+#   ADMIN_TOKEN
+#   RESEND_API_KEY
+#   CF_ZONE_ID       (for cache purge)
+#   CF_API_TOKEN     (for cache purge)
+#   RESEND_AUDIENCE_ID

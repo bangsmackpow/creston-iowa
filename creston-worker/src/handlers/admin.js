@@ -23,6 +23,7 @@ export async function handleAdmin(request, env, url) {
   if (path === '/admin' || path === '/admin/')    return renderDashboard(env, user);
   if (path.startsWith('/admin/pages'))            return handlePages(request, env, url, user);
   if (path.startsWith('/admin/meetings'))         return handleMeetingsAdmin(request, env, url, user);
+  if (path.startsWith('/admin/events'))           return handleEventsAdmin(request, env, url, user);
   if (path.startsWith('/admin/media'))            return handleMediaAdmin(request, env, url, user);
   if (path.startsWith('/admin/users'))            return handleUsers(request, env, url, user);
   if (path.startsWith('/admin/companies'))        return handleCompanies(request, env, url, user);
@@ -120,7 +121,7 @@ async function renderDashboard(env, user) {
   let statsHtml = '';
 
   if (sup) {
-    const [jobs, food, news, attr, cos, us, pgs] = await Promise.all([
+    const [jobs, food, news, attr, cos, us, pgs, evts] = await Promise.all([
       env.BUCKET.list({ prefix: 'jobs/active/' }),
       env.BUCKET.list({ prefix: 'food/' }),
       env.BUCKET.list({ prefix: 'news/' }),
@@ -128,8 +129,10 @@ async function renderDashboard(env, user) {
       getAllCompanies(env.DB),
       getAllUsers(env.DB),
       env.BUCKET.list({ prefix: 'pages/' }),
+      env.BUCKET.list({ prefix: 'events/' }),
     ]);
-    const pagesCount = (pgs.objects || []).filter(o => o.key.endsWith('.md')).length;
+    const pagesCount  = (pgs.objects || []).filter(o => o.key.endsWith('.md')).length;
+    const eventsCount = (evts.objects || []).filter(o => o.key.endsWith('.md')).length;
     statsHtml = statGrid([
       { href:'/admin/jobs',        icon:'💼', num: countMd(jobs),   label:'Active Jobs' },
       { href:'/admin/food',        icon:'🍽️', num: countMd(food),   label:'Restaurants' },
@@ -138,6 +141,7 @@ async function renderDashboard(env, user) {
       { href:'/admin/companies',   icon:'🏢', num: (cos.results||[]).length, label:'Companies' },
       { href:'/admin/users',       icon:'👥', num: (us.results||[]).length,  label:'Users' },
       { href:'/admin/pages',       icon:'📄', num: pagesCount,                     label:'Pages' },
+      { href:'/admin/events',      icon:'🎈', num: eventsCount,                    label:'Events' },
     ]);
   } else {
     const prefix = `jobs/active/${user.company_slug || 'default'}/`;
@@ -160,6 +164,8 @@ async function renderDashboard(env, user) {
     <a href="/admin/pages/new"        class="action-btn" style="background:#2a5a7a;">📄 New Page</a>
     <a href="/admin/media"            class="action-btn" style="background:#5a3a7a;">🖼️ Media Library</a>
     <a href="/admin/meetings/new"      class="action-btn" style="background:#2a6a5a;">📅 New Meeting</a>
+    <a href="/admin/events/new"        class="action-btn" style="background:#2a5a7a;">🎈 New Event</a>
+    <a href="/admin/suggestions"       class="action-btn" style="background:#4a2a7a;">🤖 AI Suggestions</a>
     <a href="/admin/newsletter/new"    class="action-btn" style="background:#1a3a6a;">📧 New Campaign</a>
     <a href="/admin/settings"          class="action-btn" style="background:#444444;">⚙️ Site Settings</a>` : `
     <a href="/admin/jobs/new" class="action-btn btn-jobs">+ Post a Job</a>
@@ -769,7 +775,9 @@ function adminPage(title, body, user) {
       <a href="/admin/pages">📄 Pages</a>
       <a href="/admin/media">🖼️ Media</a>
       <a href="/admin/meetings">📅 Meetings</a>
+      <a href="/admin/events">🎈 Events</a>
       <a href="/admin/newsletter">📧 Newsletter</a>
+      <a href="/admin/suggestions">🤖 AI Suggestions</a>
       <a href="/admin/settings">⚙️ Settings</a>` : ''}
     </nav>
     <div class="admin-header-right">
@@ -1539,4 +1547,199 @@ async function processMeetingPost(request, env, slugOrNew) {
   return new Response(JSON.stringify({ ok: true, key: `meetings/${slug}.md` }), {
     headers: { 'Content-Type': 'application/json' }
   });
+}
+
+// ── Events Admin ───────────────────────────────────────────────
+async function handleEventsAdmin(request, env, url, user) {
+  if (user.role === 'company_admin') return new Response('Forbidden', { status: 403 });
+  const path  = url.pathname;
+  const parts = path.replace('/admin/events', '').replace(/^\//, '').split('/');
+  const slug  = parts[0];
+  const action = parts[1];
+
+  if (path === '/admin/events/new') {
+    if (request.method === 'POST') return processEventPost(request, env, 'new');
+    return renderEventEditor(env, null, user);
+  }
+  if (slug && action === 'edit') {
+    if (request.method === 'POST') return processEventPost(request, env, slug);
+    return renderEventEditor(env, slug, user);
+  }
+  if (slug && action === 'delete' && request.method === 'POST') {
+    await env.BUCKET.delete(`events/${slug}.md`);
+    return new Response(null, { status: 302, headers: { Location: '/admin/events' } });
+  }
+
+  const listed = await env.BUCKET.list({ prefix: 'events/' });
+  const events = [];
+  for (const obj of listed.objects.filter(o => o.key.endsWith('.md'))) {
+    const file = await env.BUCKET.get(obj.key);
+    if (!file) continue;
+    const raw  = await file.text();
+    const meta = parseSimpleFm(raw);
+    events.push({ slug: obj.key.replace('events/', '').replace('.md', ''), key: obj.key, meta });
+  }
+  events.sort((a, b) => (b.meta.date || '').localeCompare(a.meta.date || ''));
+
+  const rows = events.map(e => `
+    <tr>
+      <td><strong>${escapeHtml(e.meta.title || e.slug)}</strong></td>
+      <td>${escapeHtml(e.meta.date || '—')}</td>
+      <td>${escapeHtml(e.meta.category || '—')}</td>
+      <td>${escapeHtml(e.meta.location || '—')}</td>
+      <td class="action-col">
+        <a href="/admin/events/${e.slug}/edit" class="tbl-btn">Edit</a>
+        <a href="/events/${e.slug}" target="_blank" class="tbl-btn tbl-btn-view">View</a>
+        <form method="POST" action="/admin/events/${e.slug}/delete" style="display:inline;"
+              onsubmit="return confirm('Delete this event?')">
+          <button type="submit" class="tbl-btn tbl-btn-danger">Delete</button>
+        </form>
+      </td>
+    </tr>`).join('');
+
+  return adminPage('🎈 Events', `
+    <div class="list-header">
+      <h2>Events (${events.length})</h2>
+      <a href="/admin/events/new" class="btn-admin-primary">+ New Event</a>
+    </div>
+    <table class="admin-table">
+      <thead><tr><th>Title</th><th>Date</th><th>Category</th><th>Location</th><th>Actions</th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="5" style="text-align:center;color:#888;padding:32px;">No events yet. <a href="/admin/events/new">Create one →</a></td></tr>'}</tbody>
+    </table>
+    <p style="font-family:sans-serif;font-size:.82rem;color:#888;margin-top:12px;">
+      📆 Public iCal feed available at <a href="/events/feed.ical">/events/feed.ical</a> — 
+      share with residents to subscribe in Google Calendar, Apple Calendar, or Outlook.
+    </p>
+  `, user);
+}
+
+async function renderEventEditor(env, slug, user) {
+  let existingContent = '';
+  if (slug) {
+    const file = await env.BUCKET.get(`events/${slug}.md`);
+    if (file) existingContent = await file.text();
+  }
+
+  const today = new Date().toISOString().split('T')[0];
+  const template = `---
+title: Event Name
+date: ${today}
+end_date:
+time: "6:00 PM"
+end_time: "9:00 PM"
+location: McKinley Park
+address: Creston, IA 50801
+category: community
+cost: Free
+url:
+featured: false
+image:
+summary: Brief description of the event shown in the calendar list.
+---
+
+## About This Event
+
+Describe the event here. What is it? Who should come? What can people expect?
+
+## Details
+
+- **When:** Saturday, ${today}
+- **Where:** McKinley Park, Creston
+- **Cost:** Free and open to the public
+
+## More Information
+
+Contact [hello@creston-iowa.com](mailto:hello@creston-iowa.com) for more details.
+`;
+
+  const tpl    = slug ? existingContent : template;
+  const isEdit = !!slug;
+
+  return adminPage(isEdit ? `Edit Event: ${slug}` : 'New Event', `
+    <div class="editor-header">
+      <a href="/admin/events" class="back-link">← Back to Events</a>
+      <h2>🎈 ${isEdit ? `Edit: ${escapeHtml(slug)}` : 'New Event'}</h2>
+    </div>
+    <div class="editor-layout">
+      <div class="editor-main">
+        <div class="form-row" style="margin-bottom:12px;">
+          <label class="form-label">Slug (e.g. 2025-09-12-balloon-days)</label>
+          <input type="text" id="slug-input" class="form-input"
+                 value="${escapeHtml(slug || '')}" placeholder="2025-09-12-balloon-days"
+                 ${isEdit ? 'readonly style="background:#f5f5f5;color:#888;"' : ''}>
+        </div>
+        <div class="editor-toolbar">
+          <button type="button" onclick="ins('**','**')"><strong>B</strong></button>
+          <button type="button" onclick="ins('*','*')"><em>I</em></button>
+          <button type="button" onclick="ins('## ','')">H2</button>
+          <button type="button" onclick="ins('### ','')">H3</button>
+          <button type="button" onclick="ins('- ','')">• List</button>
+          <button type="button" onclick="ins('[text](',')')">🔗 Link</button>
+          <span class="toolbar-sep"></span>
+          <button type="button" onclick="resetTpl()" style="color:#c9933a;">↺ Template</button>
+        </div>
+        <textarea id="md-editor" class="md-editor">${escapeHtml(tpl)}</textarea>
+        <div class="editor-actions">
+          <button onclick="saveEvent()" class="btn-admin-primary btn-save">
+            ${isEdit ? '💾 Save Changes' : '🎈 Publish Event'}
+          </button>
+          ${isEdit ? `<a href="/events/${escapeHtml(slug)}" target="_blank" class="btn-admin-secondary">🔗 View Live</a>` : ''}
+        </div>
+        <div id="status" style="margin-top:12px;font-family:sans-serif;font-size:.9rem;"></div>
+      </div>
+      <div class="editor-sidebar">
+        <div class="preview-panel">
+          <div class="preview-header">Preview</div>
+          <div id="preview" class="preview-body markdown-body"></div>
+        </div>
+        <div class="sidebar-widget" style="margin-top:16px;">
+          <div class="widget-header">📋 Category Options</div>
+          <div class="widget-body" style="font-family:sans-serif;font-size:.8rem;line-height:2;color:#666;">
+            festival · community · government · sports · arts · other
+          </div>
+        </div>
+      </div>
+    </div>
+    <script>
+      const TOKEN=sessionStorage.getItem('admin_token')||'';
+      const IS_EDIT=${isEdit}, ORIG='${escapeHtml(slug||'')}', TPL=${JSON.stringify(template)};
+      const ed=document.getElementById('md-editor'),prev=document.getElementById('preview');
+      const si=document.getElementById('slug-input'),st=document.getElementById('status');
+      ed.addEventListener('input',render); render();
+      function render(){
+        let h=ed.value
+          .replace(/^### (.+)$/gm,'<h3>$1</h3>').replace(/^## (.+)$/gm,'<h2>$1</h2>')
+          .replace(/\\*\\*(.+?)\\*\\*/g,'<strong>$1</strong>').replace(/\\*(.+?)\\*/g,'<em>$1</em>')
+          .replace(/^---[\\s\\S]*?---\\n?/,'<div class="frontmatter-notice">📋 Frontmatter</div>\\n')
+          .replace(/^- (.+)$/gm,'<li>$1</li>')
+          .split('\\n\\n').map(b=>{b=b.trim();if(!b)return'';if(/^<(h[1-6]|li|div)/.test(b))return b;return'<p>'+b.replace(/\\n/g,'<br>')+'</p>';}).join('\\n');
+        prev.innerHTML=h;
+      }
+      function ins(a,b){const s=ed.selectionStart,e=ed.selectionEnd,sel=ed.value.slice(s,e);ed.value=ed.value.slice(0,s)+a+sel+b+ed.value.slice(e);ed.selectionStart=s+a.length;ed.selectionEnd=e+a.length;ed.focus();render();}
+      function resetTpl(){if(confirm('Reset to template?')){ed.value=TPL;render();}}
+      async function saveEvent(){
+        const slug=si?si.value.trim():ORIG,content=ed.value.trim();
+        if(!slug){alert('Enter a slug.');return;}if(!content){alert('Empty.');return;}
+        st.textContent='⏳ Saving...';st.style.color='#888';
+        const method=IS_EDIT?'PUT':'POST';
+        const apiUrl=IS_EDIT?'/api/content/events/'+ORIG:'/api/content/events';
+        const body=IS_EDIT?{content}:{slug,content};
+        try{
+          const r=await fetch(apiUrl,{method,headers:{'Content-Type':'application/json','Authorization':'Bearer '+TOKEN},body:JSON.stringify(body)});
+          if(r.ok){st.textContent=IS_EDIT?'✅ Saved!':'🎈 Published!';st.style.color='#2d5a3d';if(!IS_EDIT)setTimeout(()=>{location.href='/admin/events';},1400);}
+          else{let m=r.status;try{const j=await r.json();m=j.error||m;}catch{}st.textContent='❌ Error: '+m;st.style.color='#b84040';}
+        }catch(e){st.textContent='❌ '+e.message;st.style.color='#b84040';}
+      }
+      ed.addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key==='s'){e.preventDefault();saveEvent();}});
+    </script>
+  `, user);
+}
+
+async function processEventPost(request, env, slugOrNew) {
+  const body = await request.json().catch(() => ({}));
+  if (!body.content) return new Response(JSON.stringify({ error: 'content required' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+  const slug = slugOrNew === 'new' ? sanitizeSlug(body.slug || '') : slugOrNew;
+  if (!slug) return new Response(JSON.stringify({ error: 'slug required' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+  await env.BUCKET.put(`events/${slug}.md`, body.content, { httpMetadata: { contentType: 'text/markdown; charset=utf-8' } });
+  return new Response(JSON.stringify({ ok: true }), { headers: { 'Content-Type': 'application/json' } });
 }

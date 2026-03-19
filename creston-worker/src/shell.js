@@ -69,6 +69,39 @@ export async function renderShell({
   ${cfg.google_analytics_id ? gaScript(cfg.google_analytics_id) : ''}
 </head>
 <body>
+${cfg.alert && cfg.alert.active ? `
+<div class="emergency-alert alert-${escHtml(cfg.alert.level||'warning')}" id="emergency-alert"
+     style="display:${cfg.alert.dismissible?'flex':'flex'}">
+  <div class="alert-content">
+    <span class="alert-icon">${cfg.alert.level==='emergency'?'🚨':cfg.alert.level==='warning'?'⚠️':'ℹ️'}</span>
+    <div>
+      <strong>${escHtml(cfg.alert.title||'')}</strong>
+      ${cfg.alert.message ? `<span style="margin-left:8px;">${escHtml(cfg.alert.message)}</span>` : ''}
+      ${cfg.alert.link    ? `<a href="${escHtml(cfg.alert.link)}" style="margin-left:8px;color:inherit;font-weight:700;">Learn more →</a>` : ''}
+    </div>
+  </div>
+  ${cfg.alert.dismissible ? `<button onclick="dismissAlert()" class="alert-dismiss" aria-label="Dismiss">✕</button>` : ''}
+</div>
+<style>
+  .emergency-alert { display:flex; justify-content:space-between; align-items:center; padding:10px 20px; gap:12px; position:sticky; top:0; z-index:999; font-family:var(--font-ui); font-size:.88rem; }
+  .alert-emergency { background:#b84040; color:white; }
+  .alert-warning   { background:#c9933a; color:white; }
+  .alert-info      { background:#2d5a3d; color:white; }
+  .alert-content   { display:flex; align-items:center; gap:10px; flex:1; }
+  .alert-icon      { font-size:1.1rem; flex-shrink:0; }
+  .alert-dismiss   { background:rgba(255,255,255,.2); border:none; color:white; width:28px; height:28px; border-radius:50%; cursor:pointer; font-size:1rem; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .alert-dismiss:hover { background:rgba(255,255,255,.35); }
+</style>
+<script>
+  function dismissAlert() {
+    const el = document.getElementById('emergency-alert');
+    if (el) { el.style.display='none'; sessionStorage.setItem('alert_dismissed','1'); }
+  }
+  if (sessionStorage.getItem('alert_dismissed')==='1') {
+    const el = document.getElementById('emergency-alert');
+    if (el) el.style.display='none';
+  }
+</script>` : ''}
 ${buildNav(navItems, cfg, activeNav)}
 <section class="page-hero">
   <div class="container">
