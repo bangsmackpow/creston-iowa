@@ -92,9 +92,6 @@ export const DEFAULT_SITE_CONFIG = {
   seo_default_image: '',                   // R2 key for default OG image
   google_analytics_id:   '',
   google_search_console: '',
-  seo_default_image:     '',
-  seo_title_template:    '{page} — {site}',
-  google_search_console: '',
 
   // Features — toggle on/off
   features: {
