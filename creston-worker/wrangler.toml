@@ -24,8 +24,8 @@ binding       = "DB"
 database_name = "creston-auth"
 database_id   = "REPLACE_WITH_YOUR_D1_ID"
 
-# Workers AI binding — free tier, runs at the edge
-[[ai]]
+# Workers AI — correct syntax (single [ai], not [[ai]])
+[ai]
 binding = "AI"
 
 [vars]
@@ -34,13 +34,5 @@ SITE_URL      = "https://creston-iowa.com"
 CONTACT_EMAIL = "hello@creston-iowa.com"
 CONTACT_FROM  = "contact@creston-iowa.com"
 
-# Cron Trigger — runs AI content scanner daily at 6am
-[triggers]
-crons = ["0 6 * * *"]
-
-# Secrets: npx wrangler secret put <name>
-#   ADMIN_TOKEN
-#   RESEND_API_KEY
-#   CF_ZONE_ID       (for cache purge)
-#   CF_API_TOKEN     (for cache purge)
-#   RESEND_AUDIENCE_ID
+# Secrets: npx wrangler secret put <NAME>
+#   ADMIN_TOKEN, RESEND_API_KEY, CF_ZONE_ID, CF_API_TOKEN, RESEND_AUDIENCE_ID
