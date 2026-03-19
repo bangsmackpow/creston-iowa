@@ -1,12 +1,10 @@
 /**
  * src/handlers/home.js
- * Dynamic homepage — reads original index.html and injects live data.
+ * Dynamic homepage — fetches static index.html and injects live R2 data.
  *
- * Strategy: keep all the beautiful static HTML as-is.
- * Only replace three things dynamically:
- *   1. Alert banner (from cfg)
- *   2. News cards section (latest 3 from R2)
- *   3. Mini-jobs board (live jobs + real count)
+ * index.html is in _routes.json "exclude" so fetching it directly
+ * (at /index.html) bypasses the Function and returns the static file.
+ * We use the same host as the incoming request to avoid cross-origin issues.
  */
 
 import { getSiteConfig } from '../db/site.js';
@@ -14,39 +12,60 @@ import { escHtml }       from '../shell.js';
 import { parseMarkdown } from '../markdown.js';
 
 export async function handleHome(request, env, url) {
-  const cfg    = await getSiteConfig(env);
-  const origin = new URL(request.url).origin;
+  const cfg = await getSiteConfig(env);
 
-  // Fetch the beautifully crafted static index.html as our template
-  const templateRes = await fetch(`${origin}/index.html`, {
-    cf: { cacheEverything: false },
-  });
-
-  if (!templateRes.ok) {
-    return new Response('Homepage unavailable', { status: 502 });
+  // Fetch /index.html — this is safe because _routes.json excludes /index.html
+  // from the Pages Function, so it serves the static asset directly.
+  // Using the same origin as the request avoids any cross-origin issues.
+  const indexUrl = `${url.origin}/index.html`;
+  let html;
+  try {
+    const res = await fetch(indexUrl, {
+      headers: {
+        'Accept':          'text/html',
+        'X-Static-Fetch':  '1', // marker so we can identify self-fetches in logs
+      },
+    });
+    if (!res.ok) throw new Error(`index.html fetch returned ${res.status}`);
+    html = await res.text();
+  } catch (err) {
+    console.error('home.js: could not fetch index.html:', err.message);
+    // Safe fallback — redirect to index.html directly (will serve static)
+    return Response.redirect(`${url.origin}/index.html`, 302);
   }
 
-  let html = await templateRes.text();
-
-  // Load live data in parallel
+  // Load live data from R2 in parallel
   const [newsItems, jobItems, jobCount] = await Promise.all([
     loadLatest(env, 'news/',        3),
     loadLatest(env, 'jobs/active/', 4),
     countItems(env, 'jobs/active/'),
   ]);
 
-  // ── 1. Alert banner ────────────────────────────────────────
+  // ── 1. Alert banner (inject after <body>) ──────────────────
   const alert = cfg.alert;
   if (alert && (alert.active === true || alert.active === 'true') && alert.title) {
     const icon = { emergency:'🚨', warning:'⚠️', info:'ℹ️' }[alert.level] || '⚠️';
     const dismissBtn = alert.dismissible !== false
-      ? `<button onclick="dismissAlert()" style="background:rgba(255,255,255,.2);border:none;color:white;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:1rem;flex-shrink:0;" aria-label="Dismiss">✕</button>` : '';
+      ? `<button onclick="dismissAlert()" style="background:rgba(255,255,255,.2);border:none;color:white;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:1rem;flex-shrink:0;" aria-label="Dismiss">✕</button>`
+      : '';
 
-    const banner = `<div class="emergency-alert alert-${escHtml(alert.level||'warning')}" id="emergency-alert" style="display:flex;justify-content:space-between;align-items:center;padding:10px 20px;gap:12px;position:sticky;top:0;z-index:999;font-family:sans-serif;font-size:.88rem;">
-<style>.alert-emergency{background:#b84040;color:white}.alert-warning{background:#c9933a;color:white}.alert-info{background:#2d5a3d;color:white}</style>
-<div style="display:flex;align-items:center;gap:10px;flex:1;"><span>${icon}</span><div><strong>${escHtml(alert.title)}</strong>${alert.message?` <span>${escHtml(alert.message)}</span>`:''}</div></div>
-${dismissBtn}</div>
-<script>function dismissAlert(){var e=document.getElementById('emergency-alert');if(e){e.style.display='none';sessionStorage.setItem('alert_dismissed','1');}}if(sessionStorage.getItem('alert_dismissed')==='1'){var e=document.getElementById('emergency-alert');if(e)e.style.display='none';}</script>`;
+    const banner = [
+      `<div class="emergency-alert alert-${escHtml(alert.level||'warning')}" id="emergency-alert"`,
+      ` style="display:flex;justify-content:space-between;align-items:center;`,
+      `padding:10px 20px;gap:12px;position:sticky;top:0;z-index:999;font-family:sans-serif;font-size:.88rem;">`,
+      `<style>.alert-emergency{background:#b84040;color:white}`,
+      `.alert-warning{background:#c9933a;color:white}.alert-info{background:#2d5a3d;color:white}</style>`,
+      `<div style="display:flex;align-items:center;gap:10px;flex:1;">`,
+      `<span>${icon}</span><div><strong>${escHtml(alert.title)}</strong>`,
+      alert.message ? `<span style="margin-left:8px;">${escHtml(alert.message)}</span>` : '',
+      `</div></div>${dismissBtn}</div>`,
+      `<script>`,
+      `function dismissAlert(){var e=document.getElementById('emergency-alert');`,
+      `if(e){e.style.display='none';sessionStorage.setItem('alert_dismissed','1');}}`,
+      `if(sessionStorage.getItem('alert_dismissed')==='1'){`,
+      `var e=document.getElementById('emergency-alert');if(e)e.style.display='none';}`,
+      `</script>`,
+    ].join('');
 
     html = html.replace('<body>', '<body>\n' + banner);
   }
@@ -56,7 +75,7 @@ ${dismissBtn}</div>
     const featured = newsItems[0];
     const rest     = newsItems.slice(1);
 
-    // Replace featured article
+    // Replace static featured article with live one
     const fStart = html.indexOf('<!-- Featured article -->');
     const fEnd   = html.indexOf('</article>', fStart) + '</article>'.length;
     if (fStart > -1 && fEnd > fStart) {
@@ -79,19 +98,13 @@ ${dismissBtn}</div>
         </article>` + html.slice(fEnd);
     }
 
-    // Replace news-grid with live articles
+    // Replace static news-grid with live articles
     if (rest.length > 0) {
       const gStart = html.indexOf('<div class="news-grid mt-3">');
       if (gStart > -1) {
-        // Find the matching closing div
-        let depth = 0, pos = gStart;
-        while (pos < html.length) {
-          if (html.slice(pos, pos + 4) === '<div') depth++;
-          else if (html.slice(pos, pos + 6) === '</div>') { depth--; if (depth === 0) break; }
-          pos++;
-        }
-        const gEnd = pos + 6;
-        const restHtml = rest.map(a => `
+        const gEnd = findClosingDiv(html, gStart);
+        html = html.slice(0, gStart)
+          + `<div class="news-grid mt-3">${rest.map(a => `
           <article class="news-card">
             <div class="news-card-icon">${getCatEmoji(a.meta.category)}</div>
             <div class="news-card-body">
@@ -100,14 +113,17 @@ ${dismissBtn}</div>
               <p>${escHtml((a.meta.summary || '').slice(0, 100))}${(a.meta.summary||'').length>100?'…':''}</p>
               ${a.meta.date ? `<span class="card-meta">📅 ${escHtml(a.meta.date)}</span>` : ''}
             </div>
-          </article>`).join('');
-        html = html.slice(0, gStart) + `<div class="news-grid mt-3">${restHtml}\n        </div>` + html.slice(gEnd);
+          </article>`).join('')}
+        </div>`
+          + html.slice(gEnd);
       }
     }
   }
 
   // ── 3. Live jobs mini-board ────────────────────────────────
-  if (jobItems.length > 0 || jobCount > 0) {
+  const mjStart = html.indexOf('<div class="mini-jobs">');
+  if (mjStart > -1) {
+    const mjEnd = findClosingDiv(html, mjStart);
     const miniRows = jobItems.map(j => `
             <div class="mini-job">
               <div>
@@ -117,24 +133,12 @@ ${dismissBtn}</div>
               ${j.meta.type ? `<span class="tag tag-green">${escHtml(j.meta.type)}</span>`
                 : j.meta.pay ? `<span class="tag tag-gold">${escHtml(j.meta.pay)}</span>` : ''}
             </div>`).join('');
-
     const countLabel = jobCount > 0
       ? `View All ${jobCount} Open Position${jobCount !== 1 ? 's' : ''} →`
       : 'Browse Open Positions →';
-
-    const mjStart = html.indexOf('<div class="mini-jobs">');
-    if (mjStart > -1) {
-      let depth = 0, pos = mjStart;
-      while (pos < html.length) {
-        if (html.slice(pos, pos + 4) === '<div') depth++;
-        else if (html.slice(pos, pos + 6) === '</div>') { depth--; if (depth === 0) break; }
-        pos++;
-      }
-      const mjEnd = pos + 6;
-      html = html.slice(0, mjStart)
-        + `<div class="mini-jobs">${miniRows}\n          <a href="/jobs" class="view-all-jobs">${countLabel}</a>\n        </div>`
-        + html.slice(mjEnd);
-    }
+    html = html.slice(0, mjStart)
+      + `<div class="mini-jobs">${miniRows}\n          <a href="/jobs" class="view-all-jobs">${countLabel}</a>\n        </div>`
+      + html.slice(mjEnd);
   }
 
   return new Response(html, {
@@ -145,7 +149,17 @@ ${dismissBtn}</div>
   });
 }
 
-// ── Helpers ────────────────────────────────────────────────────
+// Find the position just after the closing </div> for the div starting at start
+function findClosingDiv(html, start) {
+  let depth = 0, pos = start;
+  while (pos < html.length) {
+    if (html.slice(pos, pos+4) === '<div') depth++;
+    else if (html.slice(pos, pos+6) === '</div>') { depth--; if (depth === 0) return pos + 6; }
+    pos++;
+  }
+  return start; // fallback
+}
+
 async function loadLatest(env, prefix, limit) {
   try {
     const listed = await env.BUCKET.list({ prefix });
