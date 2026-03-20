@@ -17,6 +17,7 @@ import { handleSitemap }     from './handlers/sitemap.js';
 import { handleMeetings }    from './handlers/meetings.js';
 import { handleEvents }      from './handlers/events.js';
 import { handleDirectory }    from './handlers/directory.js';
+import { handleAIWrite }    from './handlers/ai-write.js';
 import { handleHome }         from './handlers/home.js';
 import { handleBulletin, handleBulletinAdmin } from './handlers/bulletin.js';
 import { handleNewsletterAdmin, handleSubscribe } from './handlers/newsletter.js';
@@ -72,6 +73,8 @@ export default {
       if (path === '/subscribe')           return await handleSubscribe(request, env);
 
       // API
+      if (path === '/api/ai/write' && request.method === 'POST') return await handleAIWrite(request, env);
+
       if (path.startsWith('/api/'))        return await handleApi(request, env, url);
 
       // Auth-required admin routes

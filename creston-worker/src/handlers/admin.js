@@ -38,6 +38,7 @@ export async function handleAdmin(request, env, url) {
   if (path.startsWith('/admin/account'))          return handleAccount(request, env, url, user);
   if (path.startsWith('/admin/suggestions'))       return handleSuggestionsAdmin(request, env, url, user);
   if (path.startsWith('/admin/bulletin'))          return handleBulletinAdmin(request, env, url, user);
+  if (path.startsWith('/admin/drafts'))            return handleDraftsAdmin(request, env, url, user);
   if (path.startsWith('/admin/newsletter'))        return handleNewsletterAdmin(request, env, url, user);
   if (path.startsWith('/admin/settings'))          return handleSettings(request, env, url, user);
   if (path.startsWith('/admin/'))                  return routeContent(request, env, url, path, user);
@@ -133,7 +134,7 @@ async function renderDashboard(env, user) {
   let statsHtml = '';
 
   if (sup) {
-    const [jobs, food, news, attr, cos, us, pgs, evts, dir] = await Promise.all([
+    const [jobs, food, news, attr, cos, us, pgs, evts, dir, drfts] = await Promise.all([
       env.BUCKET.list({ prefix: 'jobs/active/' }),
       env.BUCKET.list({ prefix: 'food/' }),
       env.BUCKET.list({ prefix: 'news/' }),
@@ -143,10 +144,12 @@ async function renderDashboard(env, user) {
       env.BUCKET.list({ prefix: 'pages/' }),
       env.BUCKET.list({ prefix: 'events/' }),
       env.BUCKET.list({ prefix: 'directory/' }),
+      env.BUCKET.list({ prefix: 'drafts/' }),
     ]);
     const pagesCount  = (pgs.objects || []).filter(o => o.key.endsWith('.md')).length;
     const eventsCount = (evts.objects || []).filter(o => o.key.endsWith('.md')).length;
-    const dirCount    = (dir.objects  || []).filter(o => o.key.endsWith('.md')).length;
+    const dirCount    = (dir.objects   || []).filter(o => o.key.endsWith('.md')).length;
+    const draftCount  = (drfts.objects || []).filter(o => o.key.endsWith('.md')).length;
     statsHtml = statGrid([
       { href:'/admin/jobs',        icon:'💼', num: countMd(jobs),   label:'Active Jobs' },
       { href:'/admin/food',        icon:'🍽️', num: countMd(food),   label:'Restaurants' },
@@ -157,6 +160,7 @@ async function renderDashboard(env, user) {
       { href:'/admin/pages',       icon:'📄', num: pagesCount,                     label:'Pages' },
       { href:'/admin/events',      icon:'🎈', num: eventsCount,                    label:'Events' },
       { href:'/admin/directory',   icon:'🏪', num: dirCount,                       label:'Directory' },
+      { href:'/admin/drafts',      icon:'📝', num: draftCount,                    label:'Drafts' },
     ]);
   } else {
     const prefix = `jobs/active/${user.company_slug || 'default'}/`;
@@ -745,6 +749,33 @@ async function renderEditor(env, type, slug, user) {
           <button type="button" onclick="ins('[text](',')')">🔗</button>
           <button type="button" onclick="ins('&#96;','&#96;')">Code</button>
           <span class="toolbar-sep"></span>
+          <div class="ai-toolbar-wrap" style="position:relative;display:inline-block;">
+            <button type="button" onclick="toggleAIPanel()" class="ai-toolbar-btn" title="AI Writing Assistant">
+              🤖 AI <span style="font-size:.65rem;opacity:.7;">▾</span>
+            </button>
+            <div id="ai-panel" class="ai-panel" style="display:none;">
+              <div class="ai-panel-header">🤖 AI Writing Assistant</div>
+              <div class="ai-panel-actions">
+                <button onclick="runAI('rewrite')">✨ Rewrite / Improve</button>
+                <button onclick="runAI('grammar')">✓ Fix Grammar</button>
+                <button onclick="runAI('formal')">🎩 Make Formal</button>
+                <button onclick="runAI('friendly')">😊 Make Friendly</button>
+                <button onclick="runAI('expand')">📝 Expand Bullets</button>
+                <button onclick="runAI('summarize')">📋 Write Summary</button>
+                <button onclick="runAI('title')">💡 Suggest Titles</button>
+                <button onclick="runAI('meta')">🔍 Write Meta Description</button>
+              </div>
+              <div id="ai-result-area" style="display:none;">
+                <div id="ai-result-text" class="ai-result-text"></div>
+                <div class="ai-result-actions">
+                  <button onclick="applyAIResult()" class="btn-admin-primary" style="font-size:.78rem;padding:5px 12px;">↩ Apply</button>
+                  <button onclick="copyAIResult()" class="btn-admin-secondary" style="font-size:.78rem;padding:5px 12px;">📋 Copy</button>
+                  <button onclick="closeAIPanel()" style="font-size:.78rem;padding:5px 12px;background:none;border:1px solid #ddd;border-radius:6px;cursor:pointer;">✕ Close</button>
+                </div>
+              </div>
+              <div id="ai-status" style="font-size:.78rem;color:#888;padding:6px 12px;min-height:1.4em;"></div>
+            </div>
+          </div>
           <button type="button" onclick="resetTpl()" style="color:#c9933a;">↺ Template</button>
         </div>
         <textarea id="md-editor" class="md-editor" spellcheck="true">${escapeHtml(tpl)}</textarea>
@@ -867,6 +898,7 @@ export function adminPage(title, body, user) {
       <a href="/admin/meetings">📅 Meetings</a>
       <a href="/admin/events">🎈 Events</a>
       <a href="/admin/directory">🏪 Directory</a>
+      <a href="/admin/drafts">📝 Drafts</a>
       <a href="/admin/newsletter">📧 Newsletter</a>
       <a href="/admin/bulletin">📋 Bulletin Board</a>
       <a href="/admin/suggestions">🤖 AI Suggestions</a>
@@ -2049,4 +2081,110 @@ async function processDirectoryPost(request, env, slugOrNew) {
   if (!slug) return new Response(JSON.stringify({ error: 'slug required' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
   await env.BUCKET.put(`directory/${slug}.md`, body.content, { httpMetadata: { contentType: 'text/markdown; charset=utf-8' } });
   return new Response(JSON.stringify({ ok: true }), { headers: { 'Content-Type': 'application/json' } });
+}
+
+// ── Drafts Admin ───────────────────────────────────────────────
+async function handleDraftsAdmin(request, env, url, user) {
+  if (user.role === 'company_admin') return new Response('Forbidden', { status: 403 });
+
+  const { listDrafts, publishDraft } = await import('../scheduled-publish.js');
+
+  if (request.method === 'POST' && url.pathname.endsWith('/publish')) {
+    const parts = url.pathname.replace('/admin/drafts/', '').split('/');
+    const type  = parts[0];
+    const slug  = parts.slice(1, -1).join('/');
+    try {
+      await publishDraft(env, type, slug);
+      return new Response(JSON.stringify({ ok: true }), { headers: { 'Content-Type': 'application/json' } });
+    } catch (err) {
+      return new Response(JSON.stringify({ error: err.message }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+    }
+  }
+
+  const drafts = await listDrafts(env);
+  const today  = new Date().toISOString().split('T')[0];
+
+  const grouped = {};
+  for (const d of drafts) {
+    if (!grouped[d.type]) grouped[d.type] = [];
+    grouped[d.type].push(d);
+  }
+
+  const sections = Object.entries(grouped).map(([type, items]) => {
+    const rows = items.map(d => {
+      const publishAt = d.meta.publish_at || '';
+      const isReady   = publishAt && publishAt <= today;
+      const badge     = isReady
+        ? '<span class="tbl-btn tbl-btn-ok">Ready to publish</span>'
+        : publishAt
+          ? `<span class="tbl-btn">📅 ${escapeHtml(publishAt)}</span>`
+          : '<span style="color:#aaa;font-size:.78rem;">No date set</span>';
+
+      return `<tr>
+        <td><strong>${escapeHtml(d.meta.title || d.meta.name || d.slug)}</strong></td>
+        <td>${badge}</td>
+        <td>${d.modified ? new Date(d.modified).toLocaleDateString() : '—'}</td>
+        <td class="action-col">
+          <button onclick="publishDraft('${escapeHtml(type)}','${escapeHtml(d.slug)}')"
+                  class="tbl-btn tbl-btn-ok">▶ Publish Now</button>
+          <a href="/admin/${escapeHtml(type === 'jobs' ? 'jobs' : type)}/new" class="tbl-btn">Edit</a>
+          <button onclick="deleteDraft('${escapeHtml(d.key)}')" class="tbl-btn tbl-btn-danger">Delete</button>
+        </td>
+      </tr>`;
+    }).join('');
+
+    return `
+      <h3 style="font-family:sans-serif;font-size:.95rem;margin:20px 0 8px;text-transform:capitalize;">
+        ${escapeHtml(type)} (${items.length})
+      </h3>
+      <table class="admin-table">
+        <thead><tr><th>Title</th><th>Scheduled</th><th>Last Modified</th><th>Actions</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }).join('');
+
+  const body = `
+    <div class="settings-header">
+      <div>
+        <h2>📝 Drafts</h2>
+        <p style="color:#888;font-family:sans-serif;font-size:.88rem;margin:4px 0 0;">
+          ${drafts.length} draft${drafts.length !== 1 ? 's' : ''} — scheduled items auto-publish daily at 6am
+        </p>
+      </div>
+    </div>
+
+    <div class="alert-box" style="background:#e8f2eb;border:1.5px solid #4a8c5c;border-radius:8px;padding:10px 16px;margin-bottom:20px;font-family:sans-serif;font-size:.83rem;color:#1a3a2a;">
+      💡 <strong>How drafts work:</strong> Set status to "Draft" in the content editor to save without publishing.
+      Add an optional "Publish On" date for auto-publishing. Drafts never appear on public pages.
+    </div>
+
+    <div id="draft-status" style="font-family:sans-serif;font-size:.88rem;margin-bottom:12px;min-height:1em;"></div>
+
+    ${drafts.length === 0
+      ? '<div style="text-align:center;padding:48px;color:#888;font-family:sans-serif;"><div style="font-size:3rem;margin-bottom:12px;">📝</div><h3>No drafts</h3><p>Save content as a draft to see it here.</p></div>'
+      : sections}
+
+    <script>
+      const TOKEN = sessionStorage.getItem('admin_token') || '';
+      const H = { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + TOKEN };
+      const st = document.getElementById('draft-status');
+
+      async function publishDraft(type, slug) {
+        if (!confirm('Publish this draft now? It will go live immediately.')) return;
+        st.textContent = '⏳ Publishing...'; st.style.color = '#888';
+        const r = await fetch('/admin/drafts/' + type + '/' + slug + '/publish', { method: 'POST', headers: H });
+        const d = await r.json();
+        if (d.ok) { st.textContent = '✅ Published!'; st.style.color = '#2d5a3d'; setTimeout(() => location.reload(), 1200); }
+        else { st.textContent = '❌ ' + (d.error || 'Error'); st.style.color = '#b84040'; }
+      }
+
+      async function deleteDraft(key) {
+        if (!confirm('Delete this draft permanently?')) return;
+        const encoded = encodeURIComponent(key);
+        const r = await fetch('/api/drafts/' + encoded, { method: 'DELETE', headers: H });
+        if (r.ok) location.reload();
+      }
+    </script>`;
+
+  return adminPage('📝 Drafts', body, user);
 }

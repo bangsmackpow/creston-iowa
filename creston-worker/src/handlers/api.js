@@ -15,6 +15,7 @@
 import { getAuthUser } from '../db/auth-d1.js';
 import { getSiteConfig, buildThemeCSS } from '../db/site.js';
 import { saveRevision, listRevisions, getRevision } from '../revisions.js';
+import { listDrafts, publishDraft, saveDraft }      from '../scheduled-publish.js';
 import { listContent, getContent, putContent, deleteContent, moveContent, findBySlug } from '../r2.js';
 import { parseMarkdown } from '../markdown.js';
 
@@ -63,6 +64,28 @@ export async function handleApi(request, env, url) {
   const user = isPublicRead ? null : await getAuthUser(request, env);
   if (!isPublicRead && !user) {
     return jsonResponse({ error: 'Unauthorized' }, 401);
+  }
+
+  // ── Drafts API ────────────────────────────────────────────
+  if (url.pathname.startsWith('/api/drafts')) {
+    const draftParts = url.pathname.replace('/api/drafts', '').replace(/^\//, '').split('/');
+    const dType      = draftParts[0] || '';
+    const dSlug      = draftParts[1] || '';
+    const dAction    = draftParts[2] || '';
+
+    if (request.method === 'GET') {
+      const drafts = await listDrafts(env, dType || undefined);
+      return jsonResponse(drafts);
+    }
+    if (request.method === 'POST' && dAction === 'publish') {
+      const result = await publishDraft(env, dType, dSlug);
+      return jsonResponse(result);
+    }
+    if (request.method === 'DELETE' && dType && dSlug) {
+      await env.BUCKET.delete(`drafts/${dType}/${dSlug}.md`);
+      return jsonResponse({ ok: true });
+    }
+    return jsonResponse({ error: 'Unknown drafts action' }, 400);
   }
 
   const parts  = url.pathname.replace(/^\/api\//, '').split('/');
@@ -132,6 +155,13 @@ export async function handleApi(request, env, url) {
       key = `jobs/active/${sanitizeSlug(body.company_slug)}/${sanitizeSlug(body.slug)}.md`;
     } else {
       key = `${prefix}/${sanitizeSlug(body.slug)}.md`;
+    }
+    // If status is draft, save to drafts/ prefix instead
+    const meta = parseFmStatus(body.content);
+    if (meta.status === 'draft') {
+      const draftKey = `drafts/${type}/${sanitizeSlug(body.slug)}.md`;
+      await putContent(env, draftKey, body.content);
+      return jsonResponse({ ok: true, key: draftKey, draft: true });
     }
     await putContent(env, key, body.content);
     return jsonResponse({ ok: true, key });

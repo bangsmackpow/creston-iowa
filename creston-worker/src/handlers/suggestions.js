@@ -22,7 +22,8 @@
  *   RESEND_API_KEY secret
  */
 
-import { getSiteConfig } from '../db/site.js';
+import { getSiteConfig }          from '../db/site.js';
+import { processScheduledPublish } from '../scheduled-publish.js';
 import { adminPage }    from './admin.js';
 import { escHtml }       from '../shell.js';
 import { parseMarkdown } from '../markdown.js';
@@ -115,6 +116,10 @@ export async function processSuggestions(env) {
   }
 
   console.log(`Done. Processed ${processed} items, ${pending.length} new suggestions created.`);
+
+  // Also run scheduled publishing check
+  try { await processScheduledPublish(env); } catch(e) { console.error('Scheduled publish error:', e.message); }
+
   return { processed, created: pending.length, errors };
 }
 

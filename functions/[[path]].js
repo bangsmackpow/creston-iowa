@@ -17,6 +17,7 @@ import { handleSitemap }     from '../creston-worker/src/handlers/sitemap.js';
 import { handleMeetings }    from '../creston-worker/src/handlers/meetings.js';
 import { handleEvents }      from '../creston-worker/src/handlers/events.js';
 import { handleDirectory }    from '../creston-worker/src/handlers/directory.js';
+import { handleAIWrite }    from '../creston-worker/src/handlers/ai-write.js';
 import { handleHome }         from '../creston-worker/src/handlers/home.js';
 import { handleBulletin, handleBulletinAdmin } from '../creston-worker/src/handlers/bulletin.js';
 import { handleNewsletterAdmin, handleSubscribe } from '../creston-worker/src/handlers/newsletter.js';
@@ -61,6 +62,8 @@ export async function onRequest(context) {
     if (path === '/api/media/list')                   return await handleMediaList(request, env, url);
     if (path === '/api/media/delete')                 return await handleMediaDelete(request, env, url);
     if (path === '/subscribe')                        return await handleSubscribe(request, env);
+    if (path === '/api/ai/write' && request.method === 'POST') return await handleAIWrite(request, env);
+
     if (path.startsWith('/api/'))                     return await handleApi(request, env, url);
 
     const authRoutes = ['/admin/settings', '/admin/newsletter', '/admin/suggestions'];
