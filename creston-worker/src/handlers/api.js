@@ -53,8 +53,15 @@ export async function handleApi(request, env, url) {
     });
   }
 
-  const user = await getAuthUser(request, env);
-  if (!user) {
+  // Public read access for GET requests on content listings
+  // (used by homepage dynamic injection and any future public API consumers)
+  const isPublicRead = request.method === 'GET'
+    && url.pathname.startsWith('/api/content/')
+    && !url.pathname.includes('/revisions/')
+    && !url.pathname.includes('/restore');
+
+  const user = isPublicRead ? null : await getAuthUser(request, env);
+  if (!isPublicRead && !user) {
     return jsonResponse({ error: 'Unauthorized' }, 401);
   }
 
