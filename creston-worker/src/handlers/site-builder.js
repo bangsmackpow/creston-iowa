@@ -394,7 +394,13 @@ async function handleDiscover(request, env) {
       fetchUSAJobs(lat, lon, city).then(jobs => {
         results.jobs = (results.jobs || []).concat(jobs);
         total += jobs.length;
-      }).catch(err => console.error('Jobs error:', err.message))
+      }).catch(err => console.error('USA Jobs error:', err.message))
+    );
+    tasks.push(
+      fetchIowaWorkforce().then(jobs => {
+        results.jobs = (results.jobs || []).concat(jobs);
+        total += jobs.length;
+      }).catch(err => console.error('Iowa Workforce error:', err.message))
     );
   }
 
@@ -657,40 +663,109 @@ async function fetchWikipediaAttractions(lat, lon, radiusMeters) {
 
 // ── Google Places (optional) ───────────────────────────────────
 async function fetchGooglePlaces(lat, lon, radiusMeters, apiKey) {
-  const types  = ['restaurant', 'cafe', 'bar', 'store', 'lodging', 'health', 'beauty_salon'];
+  // Uses Places API (New) - Nearby Search
+  // https://developers.google.com/maps/documentation/places/web-service/nearby-search
+  // Each call uses "Nearby Search" SKU: 10,000 free requests/month (Essentials tier)
+  // We make 2 calls per discovery run (food + directory) = negligible quota usage
+
+  const PLACES_NEW = 'https://places.googleapis.com/v1/places:searchNearby';
   const byType = {};
 
-  for (const type of types.slice(0, 3)) { // limit to avoid quota
+  // Food & drink
+  const foodTypes = ['restaurant', 'cafe', 'bar', 'bakery', 'ice_cream_shop'];
+  // Business directory
+  const bizTypes  = ['hotel', 'pharmacy', 'hospital', 'gym', 'car_repair', 'supermarket',
+                     'beauty_salon', 'laundry', 'bank', 'dentist', 'veterinary_care'];
+
+  const batches = [
+    { includedTypes: foodTypes,  mapped: { type: 'food',      emoji: '🍽️' } },
+    { includedTypes: bizTypes,   mapped: { type: 'directory', emoji: '🏪' } },
+  ];
+
+  for (const batch of batches) {
     try {
-      const res = await fetch(
-        `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lon}&radius=${radiusMeters}&type=${type}&key=${apiKey}`
-      );
+      const res = await fetch(PLACES_NEW, {
+        method:  'POST',
+        headers: {
+          'Content-Type':  'application/json',
+          'X-Goog-Api-Key': apiKey,
+          // FieldMask: only request fields we need — controls cost tier
+          // Using Essentials fields only (cheapest tier)
+          'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.websiteUri,places.rating,places.userRatingCount,places.types,places.regularOpeningHours.weekdayDescriptions,places.location',
+        },
+        body: JSON.stringify({
+          includedTypes:      batch.includedTypes,
+          maxResultCount:     20,
+          locationRestriction: {
+            circle: {
+              center: { latitude: lat, longitude: lon },
+              radius: Math.min(radiusMeters, 50000),
+            },
+          },
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.text();
+        console.error('Google Places error:', res.status, err.slice(0, 200));
+        continue;
+      }
+
       const data = await res.json();
-      if (data.status !== 'OK') continue;
+      if (!data.places?.length) continue;
 
-      for (const place of (data.results || []).slice(0, 15)) {
-        const mapped = type === 'restaurant' || type === 'cafe' || type === 'bar'
-          ? { type: 'food', cat: type, emoji: '🍽️' }
-          : { type: 'directory', cat: 'Services', emoji: '🏪' };
+      if (!byType[batch.mapped.type]) byType[batch.mapped.type] = [];
 
-        if (!byType[mapped.type]) byType[mapped.type] = [];
-        byType[mapped.type].push({
-          id:       `google-${place.place_id}`,
-          type:     mapped.type,
+      for (const place of data.places) {
+        // Map Google place types to our categories
+        const types  = place.types || [];
+        const cat    = mapGoogleType(types);
+        const hours  = place.regularOpeningHours?.weekdayDescriptions?.join('; ') || '';
+        const rating = place.rating
+          ? `${place.rating}/5 (${place.userRatingCount || 0} reviews)`
+          : '';
+
+        byType[batch.mapped.type].push({
+          id:       `google-${place.id}`,
+          type:     batch.mapped.type,
           source:   'Google Places',
-          emoji:    mapped.emoji,
-          name:     place.name,
-          category: mapped.cat,
-          address:  place.vicinity || '',
-          rating:   place.rating ? `${place.rating}/5 (${place.user_ratings_total} reviews)` : '',
-          lat:      place.geometry.location.lat,
-          lon:      place.geometry.location.lng,
-          summary:  '',
+          emoji:    batch.mapped.emoji,
+          name:     place.displayName?.text || 'Unknown',
+          category: cat,
+          address:  place.formattedAddress || '',
+          phone:    place.nationalPhoneNumber || '',
+          website:  place.websiteUri || '',
+          hours,
+          rating,
+          lat:      place.location?.latitude,
+          lon:      place.location?.longitude,
+          summary:  rating ? `Rated ${rating}.${hours ? ' ' + hours.split(';')[0] : ''}` : '',
         });
       }
-    } catch (e) { continue; }
+    } catch (e) {
+      console.error('Google Places batch error:', e.message);
+      continue;
+    }
   }
+
   return byType;
+}
+
+function mapGoogleType(types) {
+  if (types.includes('restaurant'))     return 'Restaurant';
+  if (types.includes('cafe'))           return 'Cafe';
+  if (types.includes('bar'))            return 'Bar & Grill';
+  if (types.includes('bakery'))         return 'Bakery';
+  if (types.includes('hotel'))          return 'Lodging';
+  if (types.includes('pharmacy'))       return 'Health';
+  if (types.includes('hospital'))       return 'Health';
+  if (types.includes('gym'))            return 'Fitness';
+  if (types.includes('supermarket'))    return 'Grocery';
+  if (types.includes('beauty_salon'))   return 'Beauty';
+  if (types.includes('bank'))           return 'Finance';
+  if (types.includes('dentist'))        return 'Dental';
+  if (types.includes('car_repair'))     return 'Automotive';
+  return 'Services';
 }
 
 // ── AI enrichment ─────────────────────────────────────────────
@@ -815,6 +890,69 @@ ${item.apply_url ? `[Apply online](${item.apply_url})` : 'Contact the employer f
     default: return null;
   }
 }
+
+// ── Iowa Workforce Development RSS ────────────────────────────
+async function fetchIowaWorkforce() {
+  try {
+    // Iowa Workforce Development job listings - category 6 = all Iowa
+    const res = await fetch(
+      'https://www.iowaworkforcedevelopment.gov/jobs/rss/6',
+      { headers: { 'User-Agent': 'CrestonCMS/1.0 community job aggregator' } }
+    );
+    if (!res.ok) return [];
+    const xml = await res.text();
+
+    // Parse RSS items
+    const items = [];
+    const itemRegex = /<item>([\s\S]*?)<\/item>/gi;
+    let match;
+    while ((match = itemRegex.exec(xml)) !== null && items.length < 15) {
+      const block    = match[1];
+      const title    = extractXmlTag(block, 'title');
+      const link     = extractXmlTag(block, 'link');
+      const desc     = extractXmlTag(block, 'description').replace(/<[^>]+>/g,'').trim();
+      const pubDate  = extractXmlTag(block, 'pubDate');
+      if (!title) continue;
+
+      // Try to extract employer from description
+      const employerParts = desc.split('Employer:');
+      const employer = employerParts.length > 1 ? employerParts[1].split(/[\n|]/)[0].trim() : 'Iowa Employer';
+
+      const locParts = desc.split('Location:');
+      const cityParts = desc.split('City:');
+      const location = locParts.length > 1 ? locParts[1].split(/[\n|]/)[0].trim() : cityParts.length > 1 ? cityParts[1].split(/[\n|]/)[0].trim() : 'Iowa';
+
+      items.push({
+        id:        `iowa-${encodeURIComponent(title).slice(0,30)}-${Date.now()}`,
+        type:      'jobs',
+        source:    'Iowa Workforce Development',
+        emoji:     '🌽',
+        title,
+        name:      title,
+        company:   employer,
+        location,
+        pay:       '',
+        type_label: 'Full-Time',
+        apply_url:  link || '',
+        summary:   desc.slice(0, 250),
+        posted:    pubDate ? new Date(pubDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        expires:   '',
+        category:  'State',
+      });
+    }
+    return items;
+  } catch (err) {
+    console.error('Iowa Workforce:', err.message);
+    return [];
+  }
+}
+
+function extractXmlTag(xml, tag) {
+  const m = xml.match(new RegExp(`<${tag}[^>]*>([\s\S]*?)<\/${tag}>`, 'i'));
+  if (!m) return '';
+  return m[1].replace(/<!\[CDATA\[|\]\]>/g, '').trim();
+}
+
 
 // ── Geocoding (Nominatim, free, no key) ───────────────────────
 async function geocodeCity(city) {
