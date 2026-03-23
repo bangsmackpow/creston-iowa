@@ -24,6 +24,12 @@ import { handleDocuments }        from '../creston-worker/src/handlers/documents
 import { handleNotices } from '../creston-worker/src/handlers/notices.js';
 import { handleJobsPost, handleStripeCheckout, handleStripeWebhook } from '../creston-worker/src/handlers/stripe.js';
 import { handleAIWrite }    from '../creston-worker/src/handlers/ai-write.js';
+import { handleResidents, handleMyAccount } from '../creston-worker/src/handlers/residents.js';
+import { handlePermits, handlePermitsAdmin }   from '../creston-worker/src/handlers/permits.js';
+import { handleSocialAdmin, maybeSocialPost } from '../creston-worker/src/handlers/social.js';
+import { handleSMSAdmin, handleSMSSubscribe, handleSMSUnsubscribe, handleSMSWebhook } from '../creston-worker/src/handlers/sms.js';
+import { handleResidents } from '../creston-worker/src/handlers/residents.js';
+import { handlePermits, handlePermitsAdmin } from '../creston-worker/src/handlers/permits.js';
 import { handleHome }         from '../creston-worker/src/handlers/home.js';
 import { handleBulletin, handleBulletinAdmin } from '../creston-worker/src/handlers/bulletin.js';
 import { handleNewsletterAdmin, handleSubscribe } from '../creston-worker/src/handlers/newsletter.js';
@@ -69,6 +75,12 @@ export async function onRequest(context) {
     if (path === '/api/media/delete')                 return await handleMediaDelete(request, env, url);
     if (path === '/subscribe')                        return await handleSubscribe(request, env);
 
+
+    if (path === '/api/sms/subscribe')         return await handleSMSSubscribe(request, env);
+    if (path === '/api/sms/unsubscribe')        return await handleSMSUnsubscribe(request, env);
+    if (path === '/api/sms/webhook')            return await handleSMSWebhook(request, env);
+    if (path.startsWith('/my-account'))         return await handleResidents(request, env, url);
+    if (path.startsWith('/permits'))            return await handlePermits(request, env, url);
     if (path === '/api/analytics/beacon')     return await handleAnalyticsBeacon(request, env);
     if (path.startsWith('/311'))             return await handleServiceRequests(request, env, url);
     if (path.startsWith('/foia'))            return await handleFOIA(request, env, url);
@@ -101,6 +113,10 @@ export async function onRequest(context) {
     if (path.startsWith('/meetings'))                 return await handleMeetings(request, env, url);
     if (path.startsWith('/events'))                   return await handleEvents(request, env, url);
     if (path.startsWith('/directory'))                return await handleDirectory(request, env, url);
+
+    if (path.startsWith('/residents'))              return await handleResidents(request, env, url);
+    if (path.startsWith('/my-account'))              return await handleMyAccount(request, env, url);
+    if (path.startsWith('/permits'))                  return await handlePermits(request, env, url);
 
     if (path.startsWith('/bulletin'))               return await handleBulletin(request, env, url);
 

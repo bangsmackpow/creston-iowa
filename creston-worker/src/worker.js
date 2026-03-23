@@ -24,6 +24,10 @@ import { handleNotices } from './handlers/notices.js';
 import { handleAnalyticsBeacon, handleAnalyticsAdmin } from './handlers/analytics.js';
 import { handleJobsPost, handleStripeCheckout, handleStripeWebhook } from './handlers/stripe.js';
 import { handleAIWrite }    from './handlers/ai-write.js';
+import { handleSocialAdmin, maybeSocialPost } from './handlers/social.js';
+import { handleSMSAdmin, handleSMSSubscribe, handleSMSUnsubscribe, handleSMSWebhook } from './handlers/sms.js';
+import { handleResidents } from './handlers/residents.js';
+import { handlePermits, handlePermitsAdmin } from './handlers/permits.js';
 import { handleHome }         from './handlers/home.js';
 import { handleBulletin, handleBulletinAdmin } from './handlers/bulletin.js';
 import { handleNewsletterAdmin, handleSubscribe } from './handlers/newsletter.js';
@@ -80,6 +84,12 @@ export default {
 
       // API
 
+
+      if (path === '/api/sms/subscribe')         return await handleSMSSubscribe(request, env);
+      if (path === '/api/sms/unsubscribe')        return await handleSMSUnsubscribe(request, env);
+      if (path === '/api/sms/webhook')            return await handleSMSWebhook(request, env);
+      if (path.startsWith('/my-account'))         return await handleResidents(request, env, url);
+      if (path.startsWith('/permits'))            return await handlePermits(request, env, url);
       if (path === '/api/analytics/beacon')       return await handleAnalyticsBeacon(request, env);
       if (path.startsWith('/311'))                 return await handleServiceRequests(request, env, url);
       if (path.startsWith('/foia'))                return await handleFOIA(request, env, url);

@@ -9,6 +9,7 @@ import { handleBillingAdmin }      from './stripe.js';
 import { handleSRAdmin }           from './service-requests.js';
 import { handleFOIAAdmin }         from './foia.js';
 import { handleAnalyticsAdmin }    from './analytics.js';
+import { handlePermitsAdmin }       from './permits.js';
 import { handleNewsletterAdmin }  from './newsletter.js';
 import { handleSettings }         from './settings.js';
 import { listPages, getPageTemplate, MIGRATION_PAGES } from './pages.js';
@@ -17,7 +18,9 @@ import { getUserByEmail, getAllUsers, createUser, updateUserPassword, updateUser
          createInvite, getPendingInvites, getInvite, markInviteUsed } from '../db/d1.js';
 import { verifyPassword, hashPassword, generateToken } from '../db/crypto.js';
 import { escapeHtml } from '../shell.js';
-import { adminPage }  from './admin-page.js';
+import { adminPage }          from './admin-page.js';
+import { handleSocialAdmin }   from './social.js';
+import { handleSMSAdmin }      from './sms.js';
 
 export async function handleAdmin(request, env, url) {
   const path = url.pathname;
@@ -47,6 +50,9 @@ export async function handleAdmin(request, env, url) {
   if (path.startsWith('/admin/311'))               return handleSRAdmin(request, env, url, user);
   if (path.startsWith('/admin/foia'))              return handleFOIAAdmin(request, env, url, user);
   if (path.startsWith('/admin/analytics'))         return handleAnalyticsAdmin(request, env, url, user);
+  if (path.startsWith('/admin/social'))             return handleSocialAdmin(request, env, url, user);
+  if (path.startsWith('/admin/sms'))                return handleSMSAdmin(request, env, url, user);
+  if (path.startsWith('/admin/permits'))            return handlePermitsAdmin(request, env, url, user);
   if (path.startsWith('/admin/newsletter'))        return handleNewsletterAdmin(request, env, url, user);
   if (path.startsWith('/admin/settings'))          return handleSettings(request, env, url, user);
   if (path.startsWith('/admin/'))                  return routeContent(request, env, url, path, user);

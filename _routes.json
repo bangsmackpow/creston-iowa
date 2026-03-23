@@ -39,7 +39,13 @@
     "/documents",
     "/documents/*",
     "/notices",
-    "/notices/*"
+    "/notices/*",
+    "/residents",
+    "/residents/*",
+    "/my-account",
+    "/my-account/*",
+    "/permits",
+    "/permits/*"
   ],
   "exclude": [
     "/js/*",
