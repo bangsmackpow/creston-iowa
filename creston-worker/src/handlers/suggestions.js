@@ -24,7 +24,7 @@
 
 import { getSiteConfig }          from '../db/site.js';
 import { processScheduledPublish } from '../scheduled-publish.js';
-import { adminPage }    from './admin.js';
+import { adminPage } from './admin-page.js';
 import { escHtml }       from '../shell.js';
 import { parseMarkdown } from '../markdown.js';
 

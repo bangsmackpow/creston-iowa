@@ -17,7 +17,7 @@
  */
 
 import { escHtml }   from '../shell.js';
-import { adminPage } from './admin.js';
+import { adminPage } from './admin-page.js';
 
 const RESEND_API = 'https://api.resend.com';
 

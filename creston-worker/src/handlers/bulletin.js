@@ -28,7 +28,7 @@ import { renderShell, escHtml, adSlot } from '../shell.js';
 import { parseMarkdown }                from '../markdown.js';
 import { getSiteConfig }                from '../db/site.js';
 import { shareBar }                     from './meetings.js';
-import { adminPage }                    from './admin.js';
+import { adminPage } from './admin-page.js';
 
 const PENDING_PREFIX  = 'bulletin/pending/';
 const APPROVED_PREFIX = 'bulletin/approved/';

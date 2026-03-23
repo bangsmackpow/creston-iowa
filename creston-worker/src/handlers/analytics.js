@@ -11,7 +11,7 @@
  */
 
 import { getSiteConfig } from '../db/site.js';
-import { adminPage }     from './admin.js';
+import { adminPage } from './admin-page.js';
 import { escHtml }       from '../shell.js';
 
 // ── Beacon endpoint (called by client JS) ─────────────────────

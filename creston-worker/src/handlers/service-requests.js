@@ -14,7 +14,7 @@
 
 import { renderShell, escHtml, adSlot } from '../shell.js';
 import { getSiteConfig }                from '../db/site.js';
-import { adminPage }                    from './admin.js';
+import { adminPage } from './admin-page.js';
 
 const CATEGORIES = {
   pothole:        { label: 'Pothole / Road Damage',   emoji: '🕳️',  dept: 'Public Works' },

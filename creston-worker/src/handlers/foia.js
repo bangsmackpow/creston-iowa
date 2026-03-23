@@ -14,7 +14,7 @@
 
 import { renderShell, escHtml } from '../shell.js';
 import { getSiteConfig }        from '../db/site.js';
-import { adminPage }            from './admin.js';
+import { adminPage } from './admin-page.js';
 
 const STATUS_LABELS = {
   received:   { label: 'Received',    color: '#2d5a3d', bg: '#e8f2eb' },
