@@ -881,3 +881,221 @@ button { cursor: pointer; }
   font-family: sans-serif;
   font-size: .85rem;
 }
+
+/* ── Shared design tokens (ported from style.css) ─────────────
+   Admin pages don't load style.css so these must live here.   */
+:root {
+  --green-deep:    #1a3a2a;
+  --green-mid:     #2d5a3d;
+  --green-light:   #4a8c5c;
+  --green-pale:    #e8f2eb;
+  --gold:          #c9933a;
+  --gold-light:    #f0c878;
+  --gold-pale:     #fdf6e8;
+  --navy:          #1c2b45;
+  --navy-mid:      #2e4163;
+  --cream:         #faf8f3;
+  --white:         #ffffff;
+  --text-body:     #3a3530;
+  --text-muted:    #7a7268;
+  --border:        #ddd8ce;
+  --red-accent:    #b84040;
+  --font-display:  'Playfair Display', Georgia, serif;
+  --font-body:     'Source Serif 4', Georgia, serif;
+  --font-ui:       'DM Sans', system-ui, sans-serif;
+  --radius-sm:     6px;
+  --radius-md:     12px;
+  --radius-lg:     20px;
+  --shadow-sm:     0 2px 8px rgba(0,0,0,0.08);
+  --shadow-md:     0 6px 24px rgba(0,0,0,0.12);
+}
+
+/* ── Shared component classes ─────────────────────────────────
+   Used by admin handlers but only previously defined in
+   style.css — now self-contained in admin.css.               */
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 28px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-ui);
+  font-size: .88rem;
+  font-weight: 600;
+  letter-spacing: .04em;
+  transition: all .2s ease;
+  cursor: pointer;
+  border: 2px solid transparent;
+  text-decoration: none;
+}
+.btn-primary   { background: var(--green-mid);   color: white; border-color: var(--green-mid); }
+.btn-primary:hover { background: var(--green-deep); border-color: var(--green-deep); transform: translateY(-1px); }
+.btn-outline   { background: transparent; color: var(--green-mid); border-color: var(--green-mid); }
+.btn-outline:hover { background: var(--green-mid); color: white; }
+.btn-gold      { background: var(--gold); color: white; border-color: var(--gold); }
+.btn-gold:hover { background: #b07d2a; border-color: #b07d2a; }
+.btn-lg        { padding: 16px 36px; font-size: .95rem; }
+
+/* Category pills / filter chips */
+.cat-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 14px;
+  background: white;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 100px;
+  font-family: var(--font-ui);
+  font-size: .78rem;
+  font-weight: 500;
+  color: #555;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all .15s;
+  white-space: nowrap;
+}
+.cat-pill:hover    { border-color: var(--green-mid); color: var(--green-mid); }
+.cat-pill.active   { background: var(--green-mid); border-color: var(--green-mid); color: white; }
+.cat-filters       { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+
+/* Tabs */
+.tab-bar {
+  display: flex;
+  gap: 4px;
+  border-bottom: 2px solid #e0e0e0;
+  margin-bottom: 24px;
+}
+.tab-btn {
+  padding: 8px 18px;
+  font-family: var(--font-ui);
+  font-size: .85rem;
+  font-weight: 500;
+  color: #666;
+  text-decoration: none;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  transition: all .15s;
+  cursor: pointer;
+  background: none;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+}
+.tab-btn:hover  { color: var(--green-mid); }
+.tab-btn.active { color: var(--green-deep); border-bottom-color: var(--green-mid); font-weight: 600; }
+.tab-ical       { margin-left: auto; font-size: .78rem; }
+
+/* Page section header (title + action button row) */
+.settings-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.settings-header h2 { font-family: var(--font-ui); font-size: 1.4rem; color: #1a1a1a; margin: 0; }
+
+/* Eyebrow label */
+.eyebrow {
+  font-family: var(--font-ui);
+  font-size: .72rem;
+  font-weight: 600;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: .5rem;
+  display: block;
+}
+
+/* Sidebar widgets (used in public pages rendered via shell.js, also in admin) */
+.sidebar-widget {
+  background: white;
+  border: 1px solid var(--border, #ddd8ce);
+  border-radius: var(--radius-md, 12px);
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+.widget-header {
+  background: var(--green-deep, #1a3a2a);
+  color: white;
+  padding: 14px 20px;
+  font-family: var(--font-ui);
+  font-size: .8rem;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.widget-body { padding: 16px 20px; }
+
+/* Doc buttons (meeting minutes, agenda downloads) */
+.doc-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-family: var(--font-ui);
+  font-size: .78rem;
+  font-weight: 600;
+  text-decoration: none;
+  border: 1.5px solid;
+  transition: all .15s;
+  cursor: pointer;
+  background: white;
+}
+.doc-btn-minutes { color: #2d5a3d; border-color: #4a8c5c; }
+.doc-btn-minutes:hover { background: #e8f2eb; }
+.doc-btn-agenda  { color: #0c447c; border-color: #378add; }
+.doc-btn-agenda:hover  { background: #e6f1fb; }
+.doc-btn-detail  { color: #555; border-color: #aaa; }
+.doc-btn-detail:hover  { background: #f5f5f5; }
+
+/* Share buttons */
+.share-bar   { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 16px; }
+.share-label { font-family: var(--font-ui); font-size: .75rem; color: #888; }
+.share-btn   { display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px; border-radius: 6px; font-family: var(--font-ui); font-size: .76rem; font-weight: 600; text-decoration: none; transition: opacity .15s; }
+.share-fb    { background: #1877f2; color: white; }
+.share-tw    { background: #000; color: white; }
+.share-li    { background: #0a66c2; color: white; }
+.share-copy  { background: #f0f0f0; color: #333; border: 1px solid #ddd; cursor: pointer; }
+.share-btn:hover { opacity: .85; }
+
+/* Tag colors */
+.tag-navy    { background: #d6eaf8; color: #1a3a6a; border: 1px solid #b6d4ea; border-radius: 100px; padding: 2px 10px; font-size: .75rem; font-weight: 600; font-family: var(--font-ui); display: inline-block; }
+
+/* Settings page two-column layout */
+.settings-layout {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+.settings-sidebar {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  overflow: hidden;
+  position: sticky;
+  top: calc(52px + 16px);
+}
+.settings-content { min-width: 0; }
+
+/* Dir (directory) listing classes */
+.dir-cat-link {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 16px;
+  font-family: var(--font-ui);
+  font-size: .83rem;
+  color: #555;
+  text-decoration: none;
+  border-bottom: 1px solid #f0f0f0;
+  transition: background .12s;
+}
+.dir-cat-link:last-child { border-bottom: none; }
+.dir-cat-link:hover  { background: #f5f5f5; color: var(--green-mid); }
+.dir-cat-link.active { background: #e8f2eb; color: var(--green-mid); font-weight: 600; }
+.dir-count { font-size: .72rem; color: #aaa; background: #f0f0f0; padding: 1px 7px; border-radius: 100px; font-family: var(--font-ui); }
