@@ -1,40 +1,38 @@
 /**
  * functions/[[path]].js — Cloudflare Pages Function
- * Phase 1: Events, AI Suggestions, Alert Banner
+ * Single source of truth for all routing.
+ * All imports listed once. All routes listed once.
+ * DO NOT use replace() scripts to modify this file — edit directly.
  */
 
-import { handleJobs }        from '../creston-worker/src/handlers/jobs.js';
-import { handleFood }        from '../creston-worker/src/handlers/food.js';
-import { handleNews }        from '../creston-worker/src/handlers/news.js';
-import { handleAttractions } from '../creston-worker/src/handlers/attractions.js';
-import { handleAdmin }       from '../creston-worker/src/handlers/admin.js';
-import { handleApi }         from '../creston-worker/src/handlers/api.js';
-import { handleContact }     from '../creston-worker/src/handlers/contact.js';
-import { handleSettings }    from '../creston-worker/src/handlers/settings.js';
+import { handleAdmin }                                              from '../creston-worker/src/handlers/admin.js';
+import { handleApi }                                               from '../creston-worker/src/handlers/api.js';
+import { handleContact }                                           from '../creston-worker/src/handlers/contact.js';
+import { handleSettings }                                          from '../creston-worker/src/handlers/settings.js';
 import { handleMedia, handleMediaUpload, handleMediaList, handleMediaDelete } from '../creston-worker/src/handlers/media.js';
-import { handlePage }        from '../creston-worker/src/handlers/pages.js';
-import { handleSitemap }     from '../creston-worker/src/handlers/sitemap.js';
-import { handleMeetings }    from '../creston-worker/src/handlers/meetings.js';
-import { handleEvents }      from '../creston-worker/src/handlers/events.js';
-import { handleDirectory }    from '../creston-worker/src/handlers/directory.js';
-import { handleServiceRequests } from '../creston-worker/src/handlers/service-requests.js';
-import { handleFOIA }             from '../creston-worker/src/handlers/foia.js';
-import { handleAnalyticsBeacon }  from '../creston-worker/src/handlers/analytics.js';
-import { handleDocuments }        from '../creston-worker/src/handlers/documents.js';
-import { handleNotices } from '../creston-worker/src/handlers/notices.js';
+import { handlePage }                                              from '../creston-worker/src/handlers/pages.js';
+import { handleSitemap }                                           from '../creston-worker/src/handlers/sitemap.js';
+import { handleJobs }                                              from '../creston-worker/src/handlers/jobs.js';
+import { handleFood }                                              from '../creston-worker/src/handlers/food.js';
+import { handleNews }                                              from '../creston-worker/src/handlers/news.js';
+import { handleAttractions }                                       from '../creston-worker/src/handlers/attractions.js';
+import { handleMeetings }                                          from '../creston-worker/src/handlers/meetings.js';
+import { handleEvents }                                            from '../creston-worker/src/handlers/events.js';
+import { handleDirectory }                                         from '../creston-worker/src/handlers/directory.js';
+import { handleBulletin }                                          from '../creston-worker/src/handlers/bulletin.js';
+import { handleNewsletterAdmin, handleSubscribe }                  from '../creston-worker/src/handlers/newsletter.js';
+import { handleSuggestionsAdmin }                                  from '../creston-worker/src/handlers/suggestions.js';
+import { handleServiceRequests }                                   from '../creston-worker/src/handlers/service-requests.js';
+import { handleFOIA }                                              from '../creston-worker/src/handlers/foia.js';
+import { handleDocuments }                                         from '../creston-worker/src/handlers/documents.js';
+import { handleNotices }                                           from '../creston-worker/src/handlers/notices.js';
+import { handleAnalyticsBeacon }                                   from '../creston-worker/src/handlers/analytics.js';
 import { handleJobsPost, handleStripeCheckout, handleStripeWebhook } from '../creston-worker/src/handlers/stripe.js';
-import { handleAIWrite }    from '../creston-worker/src/handlers/ai-write.js';
-import { handleResidents, handleMyAccount } from '../creston-worker/src/handlers/residents.js';
-import { handlePermits, handlePermitsAdmin }   from '../creston-worker/src/handlers/permits.js';
-import { handleSocialAdmin, maybeSocialPost } from '../creston-worker/src/handlers/social.js';
-import { handleSMSAdmin, handleSMSSubscribe, handleSMSUnsubscribe, handleSMSWebhook } from '../creston-worker/src/handlers/sms.js';
-import { handleResidents } from '../creston-worker/src/handlers/residents.js';
-import { handlePermits, handlePermitsAdmin } from '../creston-worker/src/handlers/permits.js';
-import { handleHome }         from '../creston-worker/src/handlers/home.js';
-import { handleBulletin, handleBulletinAdmin } from '../creston-worker/src/handlers/bulletin.js';
-import { handleNewsletterAdmin, handleSubscribe } from '../creston-worker/src/handlers/newsletter.js';
-import { handleSuggestionsAdmin } from '../creston-worker/src/handlers/suggestions.js';
-import { getAuthUser }       from '../creston-worker/src/db/auth-d1.js';
+import { handleAIWrite }                                           from '../creston-worker/src/handlers/ai-write.js';
+import { handleHome }                                              from '../creston-worker/src/handlers/home.js';
+import { handleResidents }                                         from '../creston-worker/src/handlers/residents.js';
+import { handlePermits }                                           from '../creston-worker/src/handlers/permits.js';
+import { handleSMSSubscribe, handleSMSUnsubscribe, handleSMSWebhook } from '../creston-worker/src/handlers/sms.js';
 
 export async function onRequest(context) {
   const { request, env } = context;
@@ -53,6 +51,8 @@ export async function onRequest(context) {
   }
 
   try {
+
+    // ── Static asset overrides ──────────────────────────────────
     if (path === '/favicon.ico' || path === '/favicon.png') {
       const file = await env.BUCKET.get('config/favicon.png') ||
                    await env.BUCKET.get('config/favicon.ico');
@@ -68,61 +68,72 @@ export async function onRequest(context) {
         : new Response('/* theme not generated yet */', { headers: { 'Content-Type': 'text/css; charset=utf-8' } });
     }
 
-    if (path === '/sitemap.xml')                      return await handleSitemap(request, env);
-    if (path.startsWith('/media/'))                   return await handleMedia(request, env, url);
-    if (path === '/api/media/upload')                 return await handleMediaUpload(request, env);
-    if (path === '/api/media/list')                   return await handleMediaList(request, env, url);
-    if (path === '/api/media/delete')                 return await handleMediaDelete(request, env, url);
-    if (path === '/subscribe')                        return await handleSubscribe(request, env);
+    // ── Media ───────────────────────────────────────────────────
+    if (path.startsWith('/media/'))        return await handleMedia(request, env, url);
+    if (path === '/api/media/upload')      return await handleMediaUpload(request, env);
+    if (path === '/api/media/list')        return await handleMediaList(request, env, url);
+    if (path === '/api/media/delete')      return await handleMediaDelete(request, env, url);
 
+    // ── Sitemap ─────────────────────────────────────────────────
+    if (path === '/sitemap.xml')           return await handleSitemap(request, env);
 
-    if (path === '/api/sms/subscribe')         return await handleSMSSubscribe(request, env);
-    if (path === '/api/sms/unsubscribe')        return await handleSMSUnsubscribe(request, env);
-    if (path === '/api/sms/webhook')            return await handleSMSWebhook(request, env);
-    if (path.startsWith('/my-account'))         return await handleResidents(request, env, url);
-    if (path.startsWith('/permits'))            return await handlePermits(request, env, url);
-    if (path === '/api/analytics/beacon')     return await handleAnalyticsBeacon(request, env);
-    if (path.startsWith('/311'))             return await handleServiceRequests(request, env, url);
-    if (path.startsWith('/foia'))            return await handleFOIA(request, env, url);
-    if (path.startsWith('/documents'))         return await handleDocuments(request, env, url);
-    if (path.startsWith('/notices'))         return await handleNotices(request, env, url);
-    if (path === '/api/stripe/webhook')  return await handleStripeWebhook(request, env);
-    if (path === '/jobs/post')           return await handleJobsPost(request, env, url);
-    if (path === '/api/stripe/checkout') return await handleStripeCheckout(request, env);
+    // ── SMS public endpoints ────────────────────────────────────
+    if (path === '/api/sms/subscribe')     return await handleSMSSubscribe(request, env);
+    if (path === '/api/sms/unsubscribe')   return await handleSMSUnsubscribe(request, env);
+    if (path === '/api/sms/webhook')       return await handleSMSWebhook(request, env);
 
-    if (path === '/api/ai/write' && request.method === 'POST') return await handleAIWrite(request, env);
+    // ── Analytics beacon ────────────────────────────────────────
+    if (path === '/api/analytics/beacon')  return await handleAnalyticsBeacon(request, env);
 
-    if (path.startsWith('/api/'))                     return await handleApi(request, env, url);
+    // ── Stripe ──────────────────────────────────────────────────
+    if (path === '/api/stripe/webhook')    return await handleStripeWebhook(request, env);
+    if (path === '/api/stripe/checkout')   return await handleStripeCheckout(request, env);
+    if (path === '/jobs/post')             return await handleJobsPost(request, env, url);
 
-    const authRoutes = ['/admin/settings', '/admin/newsletter', '/admin/suggestions'];
-    if (authRoutes.some(r => path.startsWith(r))) {
-      const user = await getAuthUser(request, env);
-      if (!user) return new Response(null, { status: 302, headers: { Location: '/admin/login' } });
-      if (path.startsWith('/admin/settings'))   return await handleSettings(request, env, url, user);
-      if (path.startsWith('/admin/newsletter'))  return await handleNewsletterAdmin(request, env, url, user);
-      if (path.startsWith('/admin/suggestions')) return await handleSuggestionsAdmin(request, env, url, user);
-      if (path.startsWith('/admin/bulletin'))   return await handleBulletinAdmin(request, env, url, user);
+    // ── AI write ────────────────────────────────────────────────
+    if (path === '/api/ai/write' && request.method === 'POST')
+                                           return await handleAIWrite(request, env);
+
+    // ── API ─────────────────────────────────────────────────────
+    if (path.startsWith('/api/'))          return await handleApi(request, env, url);
+
+    // ── Subscribe ───────────────────────────────────────────────
+    if (path === '/subscribe')             return await handleSubscribe(request, env);
+
+    // ── Admin ───────────────────────────────────────────────────
+    if (path.startsWith('/admin'))         return await handleAdmin(request, env, url);
+
+    // ── Contact ─────────────────────────────────────────────────
+    if (path.startsWith('/contact'))       return await handleContact(request, env, url);
+
+    // ── Content ─────────────────────────────────────────────────
+    if (path.startsWith('/jobs'))          return await handleJobs(request, env, url);
+    if (path.startsWith('/food'))          return await handleFood(request, env, url);
+    if (path.startsWith('/news'))          return await handleNews(request, env, url);
+    if (path.startsWith('/attractions'))   return await handleAttractions(request, env, url);
+    if (path.startsWith('/meetings'))      return await handleMeetings(request, env, url);
+    if (path.startsWith('/events'))        return await handleEvents(request, env, url);
+    if (path.startsWith('/directory'))     return await handleDirectory(request, env, url);
+    if (path.startsWith('/bulletin'))      return await handleBulletin(request, env, url);
+
+    // ── Citizen services ────────────────────────────────────────
+    if (path.startsWith('/311'))           return await handleServiceRequests(request, env, url);
+    if (path.startsWith('/foia'))          return await handleFOIA(request, env, url);
+    if (path.startsWith('/documents'))     return await handleDocuments(request, env, url);
+    if (path.startsWith('/notices'))       return await handleNotices(request, env, url);
+    if (path.startsWith('/permits'))       return await handlePermits(request, env, url);
+    if (path.startsWith('/my-account'))    return await handleResidents(request, env, url);
+
+    // ── Static CMS pages ────────────────────────────────────────
+    if (path === '/about' || path === '/government' || path === '/chamber' || path === '/advertise') {
+      const page = await handlePage(request, env, path.replace(/^\//, ''));
+      if (page) return page;
     }
 
-    if (path.startsWith('/admin'))                    return await handleAdmin(request, env, url);
-    if (path.startsWith('/contact'))                  return await handleContact(request, env, url);
-    if (path.startsWith('/jobs'))                     return await handleJobs(request, env, url);
-    if (path.startsWith('/food'))                     return await handleFood(request, env, url);
-    if (path.startsWith('/news'))                     return await handleNews(request, env, url);
-    if (path.startsWith('/attractions'))              return await handleAttractions(request, env, url);
-    if (path.startsWith('/meetings'))                 return await handleMeetings(request, env, url);
-    if (path.startsWith('/events'))                   return await handleEvents(request, env, url);
-    if (path.startsWith('/directory'))                return await handleDirectory(request, env, url);
+    // ── Homepage ────────────────────────────────────────────────
+    if (path === '/')                      return await handleHome(request, env, url);
 
-    if (path.startsWith('/residents'))              return await handleResidents(request, env, url);
-    if (path.startsWith('/my-account'))              return await handleMyAccount(request, env, url);
-    if (path.startsWith('/permits'))                  return await handlePermits(request, env, url);
-
-    if (path.startsWith('/bulletin'))               return await handleBulletin(request, env, url);
-
-    // Dynamic homepage
-    if (path === '/')                                 return await handleHome(request, env, url);
-
+    // ── CMS slug catch-all ───────────────────────────────────────
     const slug = path.replace(/^\//, '').replace(/\/$/, '');
     if (slug && !slug.includes('.') && !slug.includes('/')) {
       const page = await handlePage(request, env, slug);
@@ -130,8 +141,9 @@ export async function onRequest(context) {
     }
 
     return context.next();
+
   } catch (err) {
-    console.error('Pages Function error:', err);
+    console.error('Pages Function error:', err.message, err.stack);
     return new Response(`Server error: ${err.message}`, { status: 500 });
   }
 }

@@ -14,6 +14,7 @@
  */
 
 import { getSiteConfig, saveSiteConfig, DEFAULT_SITE_CONFIG } from '../db/site.js';
+import { adminPage } from './admin-page.js';
 import { escHtml as e } from '../shell.js';
 
 export async function handleSettings(request, env, url, user) {
@@ -1002,40 +1003,12 @@ function integrationsTab(cfg) {
     </div>`;
 }
 
-// ── Page shell ─────────────────────────────────────────────────
+// adminPage is imported from admin-page.js
+// adminSettingsPage is an alias kept for backward compat
 function adminSettingsPage(title, body, user) {
-  return new Response(`<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${e(title)} — Admin</title>
-  <link rel="stylesheet" href="/css/style.css">
-  <link rel="stylesheet" href="/css/admin.css">
-  <link rel="stylesheet" href="/css/settings.css">
-</head>
-<body class="admin-body">
-  <header class="admin-header">
-    <a href="/admin" class="admin-logo">🌾 CMS Admin</a>
-    <nav class="admin-nav">
-      <a href="/admin/jobs">💼 Jobs</a>
-      <a href="/admin/food">🍽️ Food</a>
-      <a href="/admin/news">📰 News</a>
-      <a href="/admin/attractions">🎈 Attractions</a>
-      <a href="/admin/companies">🏢 Companies</a>
-      <a href="/admin/users">👥 Users</a>
-      <a href="/admin/settings" class="active">⚙️ Settings</a>
-    </nav>
-    <div class="admin-header-right">
-      <a href="/admin/account" class="admin-view-site">⚙️ ${e(user?.name || 'Account')}</a>
-      <a href="/" target="_blank" class="admin-view-site">View Site →</a>
-      <a href="/admin/logout" class="admin-logout">Logout</a>
-    </div>
-  </header>
-  <main class="admin-main">${body}</main>
-</body>
-</html>`, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+  return adminPage(title, body, user, '/css/settings.css');
 }
+
 
 // ── Utilities ──────────────────────────────────────────────────
 function mergeSettings(current, updates) {
