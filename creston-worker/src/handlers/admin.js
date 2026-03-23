@@ -9,7 +9,6 @@ import { handleBillingAdmin }      from './stripe.js';
 import { handleSRAdmin }           from './service-requests.js';
 import { handleFOIAAdmin }         from './foia.js';
 import { handleAnalyticsAdmin }    from './analytics.js';
-import { adminPage as _ap }         from './admin.js';
 import { handleNewsletterAdmin }  from './newsletter.js';
 import { handleSettings }         from './settings.js';
 import { listPages, getPageTemplate, MIGRATION_PAGES } from './pages.js';
@@ -887,7 +886,43 @@ function attrTpl() {
 
 // ── Shell ──────────────────────────────────────────────────────
 export function adminPage(title, body, user) {
-  const sup = user?.role === 'superadmin';
+  const name = user?.name || user?.email || 'Admin';
+  const sha      = user?._env?.CF_PAGES_COMMIT_SHA || '';
+  const branch   = user?._env?.CF_PAGES_BRANCH     || '';
+  const shortSha = sha ? sha.slice(0, 7) : '';
+
+  // Nav sections — client-side JS marks the active link
+  const nav = `
+    <div class="nav-section-label">Content</div>
+    <a href="/admin/news"        class="admin-nav-link" data-prefix="/admin/news">📰 News</a>
+    <a href="/admin/food"        class="admin-nav-link" data-prefix="/admin/food">🍽️ Dining</a>
+    <a href="/admin/attractions" class="admin-nav-link" data-prefix="/admin/attractions">🎈 Attractions</a>
+    <a href="/admin/jobs"        class="admin-nav-link" data-prefix="/admin/jobs">💼 Jobs</a>
+    <a href="/admin/events"      class="admin-nav-link" data-prefix="/admin/events">📅 Events</a>
+    <a href="/admin/meetings"    class="admin-nav-link" data-prefix="/admin/meetings">🏛️ Meetings</a>
+    <a href="/admin/directory"   class="admin-nav-link" data-prefix="/admin/directory">🏪 Directory</a>
+    <a href="/admin/pages"       class="admin-nav-link" data-prefix="/admin/pages">📄 Pages</a>
+    <a href="/admin/documents"   class="admin-nav-link" data-prefix="/admin/documents">📂 Documents</a>
+    <a href="/admin/notices"     class="admin-nav-link" data-prefix="/admin/notices">📢 Notices</a>
+    <a href="/admin/drafts"      class="admin-nav-link" data-prefix="/admin/drafts">📝 Drafts</a>
+    <a href="/admin/media"       class="admin-nav-link" data-prefix="/admin/media">🖼️ Media</a>
+
+    <div class="nav-section-label">Citizen Services</div>
+    <a href="/admin/311"         class="admin-nav-link" data-prefix="/admin/311">📋 311 Requests</a>
+    <a href="/admin/foia"        class="admin-nav-link" data-prefix="/admin/foia">⚖️ FOIA</a>
+    <a href="/admin/bulletin"    class="admin-nav-link" data-prefix="/admin/bulletin">📌 Bulletin Board</a>
+
+    <div class="nav-section-label">Communications</div>
+    <a href="/admin/newsletter"  class="admin-nav-link" data-prefix="/admin/newsletter">📧 Newsletter</a>
+    <a href="/admin/suggestions" class="admin-nav-link" data-prefix="/admin/suggestions">🤖 AI Suggestions</a>
+
+    <div class="nav-section-label">Site</div>
+    <a href="/admin/analytics"   class="admin-nav-link" data-prefix="/admin/analytics">📊 Analytics</a>
+    <a href="/admin/billing"     class="admin-nav-link" data-prefix="/admin/billing">💳 Billing</a>
+    <a href="/admin/companies"   class="admin-nav-link" data-prefix="/admin/companies">🏢 Companies</a>
+    <a href="/admin/users"       class="admin-nav-link" data-prefix="/admin/users">👥 Users</a>
+    <a href="/admin/settings"    class="admin-nav-link" data-prefix="/admin/settings">⚙️ Settings</a>`;
+
   return new Response(`<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -898,37 +933,34 @@ export function adminPage(title, body, user) {
   <link rel="stylesheet" href="/css/admin.css">
 </head>
 <body class="admin-body">
-  <header class="admin-header">
-    <a href="/admin" class="admin-logo">🌾 Creston Admin</a>
-    <nav class="admin-nav">
-      <a href="/admin/jobs">💼 Jobs</a>
-      ${sup ? `<a href="/admin/food">🍽️ Food</a>
-      <a href="/admin/news">📰 News</a>
-      <a href="/admin/attractions">🎈 Attractions</a>
-      <a href="/admin/companies">🏢 Companies</a>
-      <a href="/admin/users">👥 Users</a>
-      <a href="/admin/pages">📄 Pages</a>
-      <a href="/admin/media">🖼️ Media</a>
-      <a href="/admin/meetings">📅 Meetings</a>
-      <a href="/admin/events">🎈 Events</a>
-      <a href="/admin/directory">🏪 Directory</a>
-      <a href="/admin/drafts">📝 Drafts</a>
-      <a href="/admin/newsletter">📧 Newsletter</a>
-      <a href="/admin/bulletin">📋 Bulletin Board</a>
-      <a href="/admin/billing">💳 Billing</a>
-      <a href="/admin/311">📋 311 Requests</a>
-      <a href="/admin/foia">⚖️ FOIA</a>
-      <a href="/admin/analytics">📊 Analytics</a>
-      <a href="/admin/suggestions">🤖 AI Suggestions</a>
-      <a href="/admin/settings">⚙️ Settings</a>` : ''}
-    </nav>
-    <div class="admin-header-right">
-      <a href="/admin/account" class="admin-view-site">⚙️ ${escapeHtml(user?.name||'Account')}</a>
-      <a href="/" target="_blank" class="admin-view-site">View Site →</a>
-      <a href="/admin/logout" class="admin-logout">Logout</a>
+  <aside class="admin-sidebar">
+    <div class="admin-sidebar-brand">
+      <a href="/admin">🌾 Creston Admin</a>
+      ${shortSha ? `<div class="admin-build-badge" title="Commit ${shortSha}${branch?' on '+branch:''}">${shortSha}${branch&&branch!=='main'&&branch!=='master'?` <span class="build-branch">${escapeHtml(branch)}</span>`:''}</div>` : ''}
     </div>
-  </header>
-  <main class="admin-main">${body}</main>
+    <nav class="admin-nav" role="navigation" aria-label="Admin navigation">
+      ${nav}
+    </nav>
+    <div class="admin-sidebar-footer">
+      <a href="/admin/account">⚙️ ${escapeHtml(name)}</a>
+      <a href="/" target="_blank">View Site ↗</a>
+      <a href="/admin/logout">Log out</a>
+    </div>
+  </aside>
+  <main class="admin-main">
+    <div class="admin-content">${body}</div>
+  </main>
+  <script>
+    // Mark active nav link
+    var p = location.pathname;
+    document.querySelectorAll('.admin-nav-link[data-prefix]').forEach(function(a) {
+      if (p === a.dataset.prefix || (p.startsWith(a.dataset.prefix + '/') || (p.startsWith(a.dataset.prefix) && a.dataset.prefix !== '/admin'))) {
+        a.classList.add('active');
+      }
+    });
+    // Store token for API calls
+    var TOKEN = sessionStorage.getItem('admin_token') || document.cookie.split('; ').find(r=>r.startsWith('admin_token='))?.split('=')[1] || '';
+  </script>
 </body>
 </html>`, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
 }
