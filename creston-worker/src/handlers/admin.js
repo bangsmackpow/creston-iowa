@@ -56,6 +56,7 @@ export async function handleAdmin(request, env, url) {
   if (path.startsWith('/admin/documents'))          return handleDocumentsAdmin(request, env, url, user);
   if (path.startsWith('/admin/notices'))            return handleNoticesAdmin(request, env, url, user);
   if (path.startsWith('/admin/search'))             return handleAdminSearch(request, env, url, user);
+  if (path.startsWith('/admin/site-builder'))       return handleSiteBuilder(request, env, url, user);
   if (path.startsWith('/admin/newsletter'))        return handleNewsletterAdmin(request, env, url, user);
   if (path.startsWith('/admin/settings'))          return handleSettings(request, env, url, user);
   if (path.startsWith('/admin/'))                  return routeContent(request, env, url, path, user);

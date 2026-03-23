@@ -33,7 +33,8 @@ import { handleHome }                                              from '../cres
 import { handleResidents }                                         from '../creston-worker/src/handlers/residents.js';
 import { handlePermits }                                           from '../creston-worker/src/handlers/permits.js';
 import { handleSMSSubscribe, handleSMSUnsubscribe, handleSMSWebhook } from '../creston-worker/src/handlers/sms.js';
-import { handleSearch } from '../creston-worker/src/handlers/search.js';
+import { handleSearch }       from '../creston-worker/src/handlers/search.js';
+import { handleSiteBuilder } from '../creston-worker/src/handlers/site-builder.js';
 
 export async function onRequest(context) {
   const { request, env } = context;
