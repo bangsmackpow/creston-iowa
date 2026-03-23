@@ -153,8 +153,8 @@ async function renderDashboard(env, user) {
       env.BUCKET.list({ prefix: 'events/' }),
       env.BUCKET.list({ prefix: 'directory/' }),
       env.BUCKET.list({ prefix: 'drafts/' }),
-      env.DB.prepare('SELECT COUNT(*) as cnt FROM service_requests WHERE status = \'open\'').first(),
-      env.DB.prepare('SELECT COUNT(*) as cnt FROM foia_requests WHERE status NOT IN (\'fulfilled\',\'denied\')').first(),
+      env.DB.prepare('SELECT COUNT(*) as cnt FROM service_requests WHERE status = \'open\'').first().catch(()=>({cnt:0})),
+      env.DB.prepare('SELECT COUNT(*) as cnt FROM foia_requests WHERE status NOT IN (\'fulfilled\',\'denied\')').first().catch(()=>({cnt:0})),
     ]);
     const pagesCount  = (pgs.objects || []).filter(o => o.key.endsWith('.md')).length;
     const eventsCount = (evts.objects || []).filter(o => o.key.endsWith('.md')).length;

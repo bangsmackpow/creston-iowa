@@ -380,11 +380,11 @@ export async function handleSRAdmin(request, env, url, user) {
     `SELECT * FROM service_requests ${whereStr} ORDER BY
       CASE priority WHEN 'urgent' THEN 1 WHEN 'high' THEN 2 WHEN 'normal' THEN 3 ELSE 4 END,
       created_at DESC LIMIT 100`
-  ).bind(...vals2).all();
+  ).bind(...vals2).all().catch(()=>({results:[]}));
 
   const counts = await env.DB.prepare(
     `SELECT status, COUNT(*) as cnt FROM service_requests GROUP BY status`
-  ).all();
+  ).all().catch(()=>({results:[]}));
   const countMap = Object.fromEntries((counts.results||[]).map(r => [r.status, r.cnt]));
 
   const rows = (requests.results || []).map(sr => {

@@ -311,7 +311,7 @@ export async function handleFOIAAdmin(request, env, url, user) {
   }
 
   const today   = new Date().toISOString().split('T')[0];
-  const reqs    = await env.DB.prepare(`SELECT * FROM foia_requests ORDER BY created_at DESC LIMIT 100`).all();
+  const reqs    = await env.DB.prepare(`SELECT * FROM foia_requests ORDER BY created_at DESC LIMIT 100`).all().catch(()=>({results:[]}));
   const overdue = (reqs.results||[]).filter(r => r.due_date && r.due_date < today && !['fulfilled','denied'].includes(r.status));
 
   const rows = (reqs.results||[]).map(r => {

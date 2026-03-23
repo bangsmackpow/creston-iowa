@@ -22,7 +22,7 @@ bucket_name = "crestoniowa"
 [[d1_databases]]
 binding       = "DB"
 database_name = "creston-auth"
-database_id   = "REPLACE_WITH_YOUR_D1_ID"
+database_id   = "601a8f88-100a-4a55-b723-083782d4efd2"
 
 # Workers AI — correct syntax (single [ai], not [[ai]])
 [ai]

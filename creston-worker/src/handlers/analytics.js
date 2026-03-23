@@ -55,24 +55,11 @@ export async function handleAnalyticsAdmin(request, env, url, user) {
   const cutoffStr = cutoff.toISOString().split('T')[0];
 
   // Total views in period
-  const totals = await env.DB.prepare(`
-    SELECT SUM(views) as total_views, SUM(unique_ips) as total_visitors, COUNT(DISTINCT date) as days_active
-    FROM analytics_daily WHERE date >= ?
-  `).bind(cutoffStr).first();
-
-  // Top pages
-  const topPages = await env.DB.prepare(`
-    SELECT path, SUM(views) as views, SUM(unique_ips) as visitors
-    FROM analytics_daily WHERE date >= ?
-    GROUP BY path ORDER BY views DESC LIMIT 20
-  `).bind(cutoffStr).all();
-
-  // Daily trend (last 30 days)
-  const daily = await env.DB.prepare(`
-    SELECT date, SUM(views) as views
-    FROM analytics_daily WHERE date >= ?
-    GROUP BY date ORDER BY date ASC
-  `).bind(cutoffStr).all();
+  const [totals, topPages, daily] = await Promise.all([
+    env.DB.prepare(`SELECT SUM(views) as total_views, SUM(unique_ips) as total_visitors, COUNT(DISTINCT date) as days_active FROM analytics_daily WHERE date >= ?`).bind(cutoffStr).first().catch(()=>null),
+    env.DB.prepare(`SELECT path, SUM(views) as views, SUM(unique_ips) as visitors FROM analytics_daily WHERE date >= ? GROUP BY path ORDER BY views DESC LIMIT 20`).bind(cutoffStr).all().catch(()=>({results:[]})),
+    env.DB.prepare(`SELECT date, SUM(views) as views FROM analytics_daily WHERE date >= ? GROUP BY date ORDER BY date ASC`).bind(cutoffStr).all().catch(()=>({results:[]})),
+  ]);
 
   const dailyData  = (daily.results   || []);
   const topData    = (topPages.results || []);
