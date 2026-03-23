@@ -713,3 +713,17 @@ p { margin-bottom: 1em; }
     border: 2px solid ButtonText;
   }
 }
+
+/* ── Search nav button ───────────────────────────── */
+.nav-search-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  color: var(--text-body);
+  text-decoration: none;
+  font-size: 1.1rem;
+  border-radius: 6px;
+  transition: background .15s;
+  margin-right: 4px;
+}
+.nav-search-btn:hover { background: rgba(0,0,0,.06); }

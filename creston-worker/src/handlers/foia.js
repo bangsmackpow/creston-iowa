@@ -335,7 +335,13 @@ export async function handleFOIAAdmin(request, env, url, user) {
 
   const body = `
     <div class="settings-header">
-      <div><h2>⚖️ FOIA / Open Records</h2>
+    <div class="page-description">
+      ⚖️ <strong>FOIA / Open Records</strong> — Manage public records requests under the Iowa Open Records Act
+      (Iowa Code Chapter 22). Residents have a legal right to access public records. You must respond within
+      <strong>10 business days</strong>. Red rows indicate overdue requests. Update status, add notes, and
+      email requesters via the Actions column. New requests arrive at <a href="/foia" target="_blank">/foia</a>.
+    </div>
+          <div><h2>⚖️ FOIA / Open Records</h2>
       <p style="color:#888;font-family:sans-serif;font-size:.88rem;margin:4px 0 0;">
         ${(reqs.results||[]).filter(r=>r.status==='received').length} new · ${overdue.length} overdue · ${(reqs.results||[]).length} total
       </p></div>

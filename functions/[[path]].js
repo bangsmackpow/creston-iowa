@@ -33,6 +33,7 @@ import { handleHome }                                              from '../cres
 import { handleResidents }                                         from '../creston-worker/src/handlers/residents.js';
 import { handlePermits }                                           from '../creston-worker/src/handlers/permits.js';
 import { handleSMSSubscribe, handleSMSUnsubscribe, handleSMSWebhook } from '../creston-worker/src/handlers/sms.js';
+import { handleSearch } from '../creston-worker/src/handlers/search.js';
 
 export async function onRequest(context) {
   const { request, env } = context;
@@ -131,6 +132,8 @@ export async function onRequest(context) {
     }
 
     // ── Homepage ────────────────────────────────────────────────
+    if (path.startsWith('/search'))        return await handleSearch(request, env, url);
+
     if (path === '/')                      return await handleHome(request, env, url);
 
     // ── CMS slug catch-all ───────────────────────────────────────

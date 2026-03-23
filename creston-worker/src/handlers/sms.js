@@ -198,7 +198,14 @@ export async function handleSMSAdmin(request, env, url, user) {
 
   const body = `
     <div class="settings-header">
-      <div><h2>📱 SMS Alerts</h2>
+    <div class="page-description">
+      📱 <strong>SMS Alerts</strong> — Send text message alerts to opted-in residents via Twilio. Use for
+      emergency notifications, event reminders, and community announcements. Residents subscribe at
+      <a href="/subscribe" target="_blank">/subscribe</a> or via SMS. STOP/START handled automatically.
+      Requires secrets: <code>TWILIO_ACCOUNT_SID</code>, <code>TWILIO_AUTH_TOKEN</code>,
+      <code>TWILIO_FROM_NUMBER</code>. Webhook: <code>/api/sms/webhook</code>.
+    </div>
+          <div><h2>📱 SMS Alerts</h2>
       <p style="color:#888;font-family:sans-serif;font-size:.88rem;margin:4px 0 0;">
         ${activeCount} active subscriber${activeCount!==1?'s':''} · powered by Twilio
       </p></div>

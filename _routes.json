@@ -45,7 +45,9 @@
     "/my-account",
     "/my-account/*",
     "/permits",
-    "/permits/*"
+    "/permits/*",
+    "/search",
+    "/search/*"
   ],
   "exclude": [
     "/js/*",

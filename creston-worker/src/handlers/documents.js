@@ -249,3 +249,95 @@ async function loadAllDocs(env) {
   }
   return docs;
 }
+
+// ── Admin handler ──────────────────────────────────────────────
+export async function handleDocumentsAdmin(request, env, url, user) {
+  if (user.role === 'company_admin') return new Response('Forbidden', { status: 403 });
+  const { adminPage } = await import('./admin-page.js');
+  const { escapeHtml } = await import('../shell.js');
+
+  const path = url.pathname;
+
+  // DELETE
+  if (request.method === 'POST' && path.endsWith('/delete')) {
+    const body = await request.json().catch(()=>({}));
+    if (body.key) await env.BUCKET.delete(body.key);
+    return new Response(JSON.stringify({ok:true}), {headers:{'Content-Type':'application/json'}});
+  }
+
+  const listed = await env.BUCKET.list({ prefix: PREFIX });
+  const docs = [];
+  for (const obj of listed.objects.filter(o => o.key.endsWith('.md'))) {
+    const file = await env.BUCKET.get(obj.key);
+    if (!file) continue;
+    const { parseMarkdown } = await import('../markdown.js');
+    const parsed = parseMarkdown(await file.text());
+    const parts  = obj.key.replace(PREFIX,'').split('/');
+    const slug   = parts[parts.length-1].replace('.md','');
+    docs.push({ slug, key: obj.key, meta: parsed.meta, modified: obj.uploaded });
+  }
+  docs.sort((a,b) => (b.meta.date||'').localeCompare(a.meta.date||''));
+
+  const rows = docs.map(d => {
+    const c = CATEGORIES[d.meta.category] || CATEGORIES.other;
+    return `<tr>
+      <td>${c.emoji} <strong>${escapeHtml(d.meta.title||d.slug)}</strong></td>
+      <td><span class="cat-pill">${escapeHtml(c.label)}</span></td>
+      <td style="font-size:.78rem;">${escapeHtml(d.meta.year||d.meta.date||'—')}</td>
+      <td style="font-size:.78rem;">${escapeHtml(d.meta.department||'—')}</td>
+      <td>${d.meta.file ? `<a href="${escapeHtml(d.meta.file)}" target="_blank" class="tbl-btn tbl-btn-view">⬇ Download</a>` : ''}</td>
+      <td>
+        <a href="/documents/${escapeHtml(d.slug)}" target="_blank" class="tbl-btn">View</a>
+        <button onclick="delDoc('${escapeHtml(d.key)}')" class="tbl-btn tbl-btn-danger">Delete</button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  const catCounts = Object.entries(CATEGORIES).map(([k,v]) => {
+    const n = docs.filter(d => d.meta.category === k).length;
+    return n ? `${v.emoji} ${v.label}: ${n}` : '';
+  }).filter(Boolean).join(' · ');
+
+  const body = `
+    <div class="page-description">
+      📂 <strong>Document Library</strong> — Store and publish public documents: ordinances, resolutions, budgets,
+      meeting minutes, reports, and policies. Documents appear at <a href="/documents" target="_blank">/documents</a>
+      and are searchable by category and year. Upload PDFs via the Media Library, then create a markdown file here
+      with the frontmatter pointing to the PDF path.
+    </div>
+    <div class="settings-header">
+      <div>
+        <h2>📂 Document Library</h2>
+        <p style="color:#888;font-family:sans-serif;font-size:.85rem;margin:4px 0 0;">${docs.length} document${docs.length!==1?'s':''} · ${catCounts||'none yet'}</p>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <a href="/documents" target="_blank" class="btn-admin-secondary">Public Page →</a>
+        <a href="/admin/media" class="btn-admin-primary">+ Upload PDF</a>
+      </div>
+    </div>
+    <div style="background:#e8f2eb;border:1.5px solid #4a8c5c;border-radius:8px;padding:12px 16px;margin-bottom:20px;font-family:sans-serif;font-size:.83rem;color:#1a3a2a;">
+      💡 <strong>How to add a document:</strong> Upload your PDF in the
+      <a href="/admin/media">Media Library</a> → copy the URL → create a markdown file in R2 under
+      <code>documents/{category}/{year}/slug.md</code> with frontmatter including <code>title</code>,
+      <code>category</code>, <code>year</code>, <code>date</code>, and <code>file: /media/docs/your-file.pdf</code>.
+    </div>
+    <div id="doc-msg" style="font-family:sans-serif;font-size:.85rem;min-height:1em;margin-bottom:8px;"></div>
+    <table class="admin-table">
+      <thead><tr><th>Title</th><th>Category</th><th>Year</th><th>Department</th><th>File</th><th>Actions</th></tr></thead>
+      <tbody>${rows||'<tr><td colspan="6" style="text-align:center;color:#888;padding:32px;">No documents yet. Upload a PDF and create a document entry to get started.</td></tr>'}</tbody>
+    </table>
+    <script>
+      const TOKEN=sessionStorage.getItem('admin_token')||'';
+      const H={'Content-Type':'application/json','Authorization':'Bearer '+TOKEN};
+      const msg=document.getElementById('doc-msg');
+      async function delDoc(key){
+        if(!confirm('Delete this document?'))return;
+        const r=await fetch('/admin/documents/delete',{method:'POST',headers:H,body:JSON.stringify({key})});
+        const d=await r.json();
+        if(d.ok){msg.textContent='✅ Deleted';msg.style.color='#2d5a3d';setTimeout(()=>location.reload(),800);}
+        else{msg.textContent='❌ '+(d.error||'Error');msg.style.color='#b84040';}
+      }
+    </script>`;
+
+  return adminPage('📂 Documents', body, user);
+}

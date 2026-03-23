@@ -180,6 +180,7 @@ function buildNav(navItems, cfg, activeNav) {
       <span>${escHtml(cfg.name || 'My Town')}<small class="logo-sub">${escHtml(cfg.tagline || '')}</small></span>
     </a>
     <div class="nav-links" id="nav-links">${desktop}</div>
+    <a href="/search" class="nav-search-btn" aria-label="Search">🔍</a>
     <button class="nav-toggle" id="nav-toggle" aria-label="Toggle menu"><span></span><span></span><span></span></button>
   </div>
 </nav>

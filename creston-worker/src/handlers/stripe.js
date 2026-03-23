@@ -374,7 +374,13 @@ export async function handleBillingAdmin(request, env, url, user) {
   const body = `
     <div class="settings-header">
       <div>
-        <h2>💳 Billing & Orders</h2>
+    <div class="page-description">
+      💳 <strong>Billing & Orders</strong> — Job board revenue from employer Stripe payments. Basic $49 (1 credit),
+      Featured $89 (1 credit + featured badge), Premium $149 (3 credits). Credits are added to company accounts
+      automatically via Stripe webhook. For refunds or disputes, use the Stripe Dashboard link above.
+      "Unassigned" orders need manual credit allocation — email not matched to a company account.
+    </div>
+            <h2>💳 Billing & Orders</h2>
         <p style="color:#888;font-family:sans-serif;font-size:.88rem;margin:4px 0 0;">
           Job board revenue — powered by Stripe
         </p>

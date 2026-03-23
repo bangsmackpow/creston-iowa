@@ -167,3 +167,95 @@ async function renderNoticeDetail(env, slug) {
     subheading: m.publish_date || '', config: cfg, content,
   }), { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
 }
+
+// ── Admin handler ──────────────────────────────────────────────
+export async function handleNoticesAdmin(request, env, url, user) {
+  if (user.role === 'company_admin') return new Response('Forbidden', { status: 403 });
+  const { adminPage }   = await import('./admin-page.js');
+  const { escapeHtml }  = await import('../shell.js');
+  const { parseMarkdown } = await import('../markdown.js');
+
+  const path = url.pathname;
+
+  // DELETE
+  if (request.method === 'POST' && path.endsWith('/delete')) {
+    const body = await request.json().catch(()=>({}));
+    if (body.key) await env.BUCKET.delete(body.key);
+    return new Response(JSON.stringify({ok:true}), {headers:{'Content-Type':'application/json'}});
+  }
+
+  const today  = new Date().toISOString().split('T')[0];
+  const listed = await env.BUCKET.list({ prefix: PREFIX });
+  const notices = [];
+  for (const obj of listed.objects.filter(o => o.key.endsWith('.md'))) {
+    const file = await env.BUCKET.get(obj.key);
+    if (!file) continue;
+    const parsed = parseMarkdown(await file.text());
+    notices.push({ slug: obj.key.replace(PREFIX,'').replace('.md',''), key: obj.key, meta: parsed.meta, modified: obj.uploaded });
+  }
+  notices.sort((a,b) => (b.meta.publish_date||'').localeCompare(a.meta.publish_date||''));
+
+  const active   = notices.filter(n => !n.meta.expiry_date || n.meta.expiry_date >= today);
+  const archived = notices.filter(n =>  n.meta.expiry_date && n.meta.expiry_date <  today);
+
+  const rows = notices.map(n => {
+    const c       = CATEGORIES[n.meta.category] || CATEGORIES.other;
+    const expired = n.meta.expiry_date && n.meta.expiry_date < today;
+    const expiring = n.meta.expiry_date && !expired && Math.ceil((new Date(n.meta.expiry_date)-new Date())/86400000) <= 7;
+    return `<tr ${expired?'style="opacity:.6;"':''}>
+      <td>${c.emoji} <strong>${escapeHtml(n.meta.title||n.slug)}</strong></td>
+      <td><span class="cat-pill">${escapeHtml(c.label)}</span></td>
+      <td style="font-size:.78rem;">${escapeHtml(n.meta.publish_date||'—')}</td>
+      <td style="font-size:.78rem;${expiring?'color:#c9933a;font-weight:600;':expired?'color:#aaa;':''}">
+        ${expired?'Expired':n.meta.expiry_date||'No expiry'}${expiring?' ⚠️':''}
+      </td>
+      <td>
+        <a href="/notices/${escapeHtml(n.slug)}" target="_blank" class="tbl-btn">View</a>
+        ${n.meta.file?`<a href="${escapeHtml(n.meta.file)}" target="_blank" class="tbl-btn tbl-btn-view">⬇ PDF</a>`:''}
+        <button onclick="delNotice('${escapeHtml(n.key)}')" class="tbl-btn tbl-btn-danger">Delete</button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  const body = `
+    <div class="page-description">
+      📢 <strong>Public Notices</strong> — Publish legally required public notices: legal notices, bids/RFPs,
+      zoning changes, public hearings, and election notices. Iowa law requires certain notices be publicly posted.
+      Active notices appear at <a href="/notices" target="_blank">/notices</a>. Set an expiry date and notices
+      auto-archive. Create entries as markdown files in R2 under <code>notices/slug.md</code>.
+    </div>
+    <div class="settings-header">
+      <div>
+        <h2>📢 Public Notices</h2>
+        <p style="color:#888;font-family:sans-serif;font-size:.85rem;margin:4px 0 0;">
+          ${active.length} active · ${archived.length} archived
+        </p>
+      </div>
+      <a href="/notices" target="_blank" class="btn-admin-secondary">Public Page →</a>
+    </div>
+    <div style="background:#e8f2eb;border:1.5px solid #4a8c5c;border-radius:8px;padding:12px 16px;margin-bottom:20px;font-family:sans-serif;font-size:.83rem;color:#1a3a2a;">
+      💡 <strong>To add a notice:</strong> Create a markdown file in R2 at <code>notices/your-slug.md</code> with
+      frontmatter: <code>title</code>, <code>category</code> (legal/bid/zoning/hearing/election/other),
+      <code>publish_date</code>, <code>expiry_date</code>, <code>department</code>, and optionally <code>file</code>
+      pointing to a PDF in the media library.
+    </div>
+    <div id="notice-msg" style="font-family:sans-serif;font-size:.85rem;min-height:1em;margin-bottom:8px;"></div>
+    <table class="admin-table">
+      <thead><tr><th>Title</th><th>Category</th><th>Published</th><th>Expires</th><th>Actions</th></tr></thead>
+      <tbody>${rows||'<tr><td colspan="5" style="text-align:center;color:#888;padding:32px;">No notices yet.</td></tr>'}</tbody>
+    </table>
+    <script>
+      const TOKEN=sessionStorage.getItem('admin_token')||'';
+      const H={'Content-Type':'application/json','Authorization':'Bearer '+TOKEN};
+      const msg=document.getElementById('notice-msg');
+      async function delNotice(key){
+        if(!confirm('Delete this notice?'))return;
+        const r=await fetch('/admin/notices/delete',{method:'POST',headers:H,body:JSON.stringify({key})});
+        const d=await r.json();
+        if(d.ok){msg.textContent='✅ Deleted';msg.style.color='#2d5a3d';setTimeout(()=>location.reload(),800);}
+        else{msg.textContent='❌ '+(d.error||'Error');msg.style.color='#b84040';}
+      }
+    </script>`;
+
+  return adminPage('📢 Notices', body, user);
+}

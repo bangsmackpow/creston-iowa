@@ -198,7 +198,14 @@ export async function handleSocialAdmin(request, env, url, user) {
 
   const body = `
     <div class="settings-header">
-      <div><h2>📣 Social Auto-Post</h2>
+    <div class="page-description">
+      📣 <strong>Social Auto-Post</strong> — Automatically share published content to Facebook and Twitter/X.
+      Triggers when news, jobs, events, or notices are published (if enabled in Settings → Features).
+      Configure by adding secrets: <code>FACEBOOK_PAGE_ID</code>, <code>FACEBOOK_ACCESS_TOKEN</code>,
+      <code>TWITTER_API_KEY</code>, <code>TWITTER_API_SECRET</code>, <code>TWITTER_ACCESS_TOKEN</code>,
+      <code>TWITTER_ACCESS_SECRET</code>. Use "Send Test Post" to verify your credentials.
+    </div>
+          <div><h2>📣 Social Auto-Post</h2>
       <p style="color:#888;font-family:sans-serif;font-size:.88rem;margin:4px 0 0;">
         Auto-post to Facebook and Twitter/X when content is published
       </p></div>

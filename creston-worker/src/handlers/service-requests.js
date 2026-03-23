@@ -422,7 +422,13 @@ export async function handleSRAdmin(request, env, url, user) {
   const body = `
     <div class="settings-header">
       <div>
-        <h2>📋 311 Service Requests</h2>
+    <div class="page-description">
+      📋 <strong>311 Service Requests</strong> — Manage non-emergency community service requests submitted by residents.
+      Requests cover potholes, streetlights, parks, drainage, graffiti, noise, and more. Assign priorities,
+      update statuses, add internal notes, and email residents when their issue is resolved.
+      New requests arrive via the public form at <a href="/311" target="_blank">/311</a>.
+    </div>
+            <h2>📋 311 Service Requests</h2>
         <p style="color:#888;font-family:sans-serif;font-size:.88rem;margin:4px 0 0;">
           ${countMap.open||0} open · ${countMap.in_progress||0} in progress · ${countMap.resolved||0} resolved
         </p>

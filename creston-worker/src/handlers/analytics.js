@@ -98,7 +98,12 @@ export async function handleAnalyticsAdmin(request, env, url, user) {
   const body = `
     <div class="settings-header">
       <div>
-        <h2>📊 Analytics</h2>
+    <div class="page-description">
+      📊 <strong>Analytics</strong> — Privacy-first page view tracking. No cookies, no GDPR banners, no third-party
+      trackers. Data collected via a lightweight beacon on every page. View total views, unique visitors,
+      top pages, and daily trends. Switch between 7, 30, and 90-day windows using the buttons above.
+    </div>
+            <h2>📊 Analytics</h2>
         <p style="color:#888;font-family:sans-serif;font-size:.88rem;margin:4px 0 0;">
           Privacy-first · No cookies · No tracking pixels
         </p>

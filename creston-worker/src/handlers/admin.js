@@ -53,6 +53,9 @@ export async function handleAdmin(request, env, url) {
   if (path.startsWith('/admin/social'))             return handleSocialAdmin(request, env, url, user);
   if (path.startsWith('/admin/sms'))                return handleSMSAdmin(request, env, url, user);
   if (path.startsWith('/admin/permits'))            return handlePermitsAdmin(request, env, url, user);
+  if (path.startsWith('/admin/documents'))          return handleDocumentsAdmin(request, env, url, user);
+  if (path.startsWith('/admin/notices'))            return handleNoticesAdmin(request, env, url, user);
+  if (path.startsWith('/admin/search'))             return handleAdminSearch(request, env, url, user);
   if (path.startsWith('/admin/newsletter'))        return handleNewsletterAdmin(request, env, url, user);
   if (path.startsWith('/admin/settings'))          return handleSettings(request, env, url, user);
   if (path.startsWith('/admin/'))                  return routeContent(request, env, url, path, user);
@@ -2125,7 +2128,13 @@ async function handleDraftsAdmin(request, env, url, user) {
   const body = `
     <div class="settings-header">
       <div>
-        <h2>📝 Drafts</h2>
+    <div class="page-description">
+      📝 <strong>Drafts</strong> — Content saved as "Draft" in the editor appears here instead of going live.
+      Set a <em>Publish On</em> date for scheduled publishing — the daily cron (6am) auto-publishes when the
+      date arrives and emails you a confirmation. Click <strong>▶ Publish Now</strong> to publish immediately.
+      Drafts are completely invisible to public visitors.
+    </div>
+            <h2>📝 Drafts</h2>
         <p style="color:#888;font-family:sans-serif;font-size:.88rem;margin:4px 0 0;">
           ${drafts.length} draft${drafts.length !== 1 ? 's' : ''} — scheduled items auto-publish daily at 6am
         </p>
