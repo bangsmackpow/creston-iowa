@@ -17,6 +17,12 @@ import { handleSitemap }     from '../creston-worker/src/handlers/sitemap.js';
 import { handleMeetings }    from '../creston-worker/src/handlers/meetings.js';
 import { handleEvents }      from '../creston-worker/src/handlers/events.js';
 import { handleDirectory }    from '../creston-worker/src/handlers/directory.js';
+import { handleServiceRequests, handleSRAdmin } from '../creston-worker/src/handlers/service-requests.js';
+import { handleFOIA, handleFOIAAdmin } from '../creston-worker/src/handlers/foia.js';
+import { handleDocuments } from '../creston-worker/src/handlers/documents.js';
+import { handleNotices } from '../creston-worker/src/handlers/notices.js';
+import { handleAnalyticsBeacon, handleAnalyticsAdmin } from '../creston-worker/src/handlers/analytics.js';
+import { handleJobsPost, handleStripeCheckout, handleStripeWebhook } from '../creston-worker/src/handlers/stripe.js';
 import { handleAIWrite }    from '../creston-worker/src/handlers/ai-write.js';
 import { handleHome }         from '../creston-worker/src/handlers/home.js';
 import { handleBulletin, handleBulletinAdmin } from '../creston-worker/src/handlers/bulletin.js';
@@ -62,6 +68,16 @@ export async function onRequest(context) {
     if (path === '/api/media/list')                   return await handleMediaList(request, env, url);
     if (path === '/api/media/delete')                 return await handleMediaDelete(request, env, url);
     if (path === '/subscribe')                        return await handleSubscribe(request, env);
+
+    if (path === '/api/analytics/beacon')     return await handleAnalyticsBeacon(request, env);
+    if (path.startsWith('/311'))             return await handleServiceRequests(request, env, url);
+    if (path.startsWith('/foia'))            return await handleFOIA(request, env, url);
+    if (path.startsWith('/documents'))         return await handleDocuments(request, env, url);
+    if (path.startsWith('/notices'))         return await handleNotices(request, env, url);
+    if (path === '/api/stripe/webhook')  return await handleStripeWebhook(request, env);
+    if (path === '/jobs/post')           return await handleJobsPost(request, env, url);
+    if (path === '/api/stripe/checkout') return await handleStripeCheckout(request, env);
+
     if (path === '/api/ai/write' && request.method === 'POST') return await handleAIWrite(request, env);
 
     if (path.startsWith('/api/'))                     return await handleApi(request, env, url);

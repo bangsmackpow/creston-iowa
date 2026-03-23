@@ -26,6 +26,10 @@ export async function handleSitemap(request, env) {
     urls.push({ loc: '/directory',   priority: '0.8', changefreq: 'weekly'  });
     urls.push({ loc: '/contact',     priority: '0.5', changefreq: 'monthly' });
     urls.push({ loc: '/about',       priority: '0.6', changefreq: 'monthly' });
+    urls.push({ loc: '/311',         priority: '0.8', changefreq: 'weekly'  });
+    urls.push({ loc: '/foia',        priority: '0.7', changefreq: 'monthly' });
+    urls.push({ loc: '/documents',   priority: '0.8', changefreq: 'weekly'  });
+    urls.push({ loc: '/notices',     priority: '0.9', changefreq: 'daily'   });
     urls.push({ loc: '/government',  priority: '0.6', changefreq: 'monthly' });
 
     // ── Dynamic pages from R2 ─────────────────────────────────
@@ -38,6 +42,8 @@ export async function handleSitemap(request, env) {
       { prefix: 'events/',       base: '/events/',      priority: '0.8', changefreq: 'weekly'  },
       { prefix: 'meetings/',     base: '/meetings/',    priority: '0.7', changefreq: 'monthly' },
       { prefix: 'directory/',    base: '/directory/',   priority: '0.7', changefreq: 'monthly' },
+      { prefix: 'documents/',    base: '/documents/',   priority: '0.7', changefreq: 'monthly' },
+      { prefix: 'notices/',      base: '/notices/',     priority: '0.8', changefreq: 'weekly'  },
     ];
 
     for (const { prefix, base, priority, changefreq } of prefixes) {

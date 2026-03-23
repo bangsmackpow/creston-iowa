@@ -31,7 +31,15 @@
     "/directory",
     "/directory/*",
     "/bulletin",
-    "/bulletin/*"
+    "/bulletin/*",
+    "/311",
+    "/311/*",
+    "/foia",
+    "/foia/*",
+    "/documents",
+    "/documents/*",
+    "/notices",
+    "/notices/*"
   ],
   "exclude": [
     "/js/*",

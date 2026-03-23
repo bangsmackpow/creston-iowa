@@ -17,6 +17,12 @@ import { handleSitemap }     from './handlers/sitemap.js';
 import { handleMeetings }    from './handlers/meetings.js';
 import { handleEvents }      from './handlers/events.js';
 import { handleDirectory }    from './handlers/directory.js';
+import { handleServiceRequests, handleSRAdmin } from './handlers/service-requests.js';
+import { handleFOIA, handleFOIAAdmin } from './handlers/foia.js';
+import { handleDocuments } from './handlers/documents.js';
+import { handleNotices } from './handlers/notices.js';
+import { handleAnalyticsBeacon, handleAnalyticsAdmin } from './handlers/analytics.js';
+import { handleJobsPost, handleStripeCheckout, handleStripeWebhook } from './handlers/stripe.js';
 import { handleAIWrite }    from './handlers/ai-write.js';
 import { handleHome }         from './handlers/home.js';
 import { handleBulletin, handleBulletinAdmin } from './handlers/bulletin.js';
@@ -73,6 +79,16 @@ export default {
       if (path === '/subscribe')           return await handleSubscribe(request, env);
 
       // API
+
+      if (path === '/api/analytics/beacon')       return await handleAnalyticsBeacon(request, env);
+      if (path.startsWith('/311'))                 return await handleServiceRequests(request, env, url);
+      if (path.startsWith('/foia'))                return await handleFOIA(request, env, url);
+      if (path.startsWith('/documents'))           return await handleDocuments(request, env, url);
+      if (path.startsWith('/notices'))             return await handleNotices(request, env, url);
+      if (path === '/api/stripe/webhook')  return await handleStripeWebhook(request, env);
+      if (path === '/jobs/post')           return await handleJobsPost(request, env, url);
+      if (path === '/api/stripe/checkout') return await handleStripeCheckout(request, env);
+
       if (path === '/api/ai/write' && request.method === 'POST') return await handleAIWrite(request, env);
 
       if (path.startsWith('/api/'))        return await handleApi(request, env, url);

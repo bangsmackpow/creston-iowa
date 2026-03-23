@@ -5,6 +5,10 @@
 import { getAuthUser, createUserSession, destroySession } from '../db/auth-d1.js';
 import { handleSuggestionsAdmin }  from './suggestions.js';
 import { handleBulletinAdmin }     from './bulletin.js';
+import { handleBillingAdmin }      from './stripe.js';
+import { handleSRAdmin }           from './service-requests.js';
+import { handleFOIAAdmin }         from './foia.js';
+import { handleAnalyticsAdmin }    from './analytics.js';
 import { adminPage as _ap }         from './admin.js';
 import { handleNewsletterAdmin }  from './newsletter.js';
 import { handleSettings }         from './settings.js';
@@ -39,6 +43,10 @@ export async function handleAdmin(request, env, url) {
   if (path.startsWith('/admin/suggestions'))       return handleSuggestionsAdmin(request, env, url, user);
   if (path.startsWith('/admin/bulletin'))          return handleBulletinAdmin(request, env, url, user);
   if (path.startsWith('/admin/drafts'))            return handleDraftsAdmin(request, env, url, user);
+  if (path.startsWith('/admin/billing'))           return handleBillingAdmin(request, env, url, user);
+  if (path.startsWith('/admin/311'))               return handleSRAdmin(request, env, url, user);
+  if (path.startsWith('/admin/foia'))              return handleFOIAAdmin(request, env, url, user);
+  if (path.startsWith('/admin/analytics'))         return handleAnalyticsAdmin(request, env, url, user);
   if (path.startsWith('/admin/newsletter'))        return handleNewsletterAdmin(request, env, url, user);
   if (path.startsWith('/admin/settings'))          return handleSettings(request, env, url, user);
   if (path.startsWith('/admin/'))                  return routeContent(request, env, url, path, user);
@@ -134,7 +142,7 @@ async function renderDashboard(env, user) {
   let statsHtml = '';
 
   if (sup) {
-    const [jobs, food, news, attr, cos, us, pgs, evts, dir, drfts] = await Promise.all([
+    const [jobs, food, news, attr, cos, us, pgs, evts, dir, drfts, srOpen, foiaOpen] = await Promise.all([
       env.BUCKET.list({ prefix: 'jobs/active/' }),
       env.BUCKET.list({ prefix: 'food/' }),
       env.BUCKET.list({ prefix: 'news/' }),
@@ -145,11 +153,15 @@ async function renderDashboard(env, user) {
       env.BUCKET.list({ prefix: 'events/' }),
       env.BUCKET.list({ prefix: 'directory/' }),
       env.BUCKET.list({ prefix: 'drafts/' }),
+      env.DB.prepare('SELECT COUNT(*) as cnt FROM service_requests WHERE status = \'open\'').first(),
+      env.DB.prepare('SELECT COUNT(*) as cnt FROM foia_requests WHERE status NOT IN (\'fulfilled\',\'denied\')').first(),
     ]);
     const pagesCount  = (pgs.objects || []).filter(o => o.key.endsWith('.md')).length;
     const eventsCount = (evts.objects || []).filter(o => o.key.endsWith('.md')).length;
     const dirCount    = (dir.objects   || []).filter(o => o.key.endsWith('.md')).length;
     const draftCount  = (drfts.objects || []).filter(o => o.key.endsWith('.md')).length;
+    const srCount     = srOpen?.cnt   || 0;
+    const foiaCount   = foiaOpen?.cnt || 0;
     statsHtml = statGrid([
       { href:'/admin/jobs',        icon:'💼', num: countMd(jobs),   label:'Active Jobs' },
       { href:'/admin/food',        icon:'🍽️', num: countMd(food),   label:'Restaurants' },
@@ -161,6 +173,8 @@ async function renderDashboard(env, user) {
       { href:'/admin/events',      icon:'🎈', num: eventsCount,                    label:'Events' },
       { href:'/admin/directory',   icon:'🏪', num: dirCount,                       label:'Directory' },
       { href:'/admin/drafts',      icon:'📝', num: draftCount,                    label:'Drafts' },
+      { href:'/admin/311',         icon:'📋', num: srCount,                       label:'311 Open' },
+      { href:'/admin/foia',        icon:'⚖️',  num: foiaCount,                     label:'FOIA Open' },
     ]);
   } else {
     const prefix = `jobs/active/${user.company_slug || 'default'}/`;
@@ -901,6 +915,10 @@ export function adminPage(title, body, user) {
       <a href="/admin/drafts">📝 Drafts</a>
       <a href="/admin/newsletter">📧 Newsletter</a>
       <a href="/admin/bulletin">📋 Bulletin Board</a>
+      <a href="/admin/billing">💳 Billing</a>
+      <a href="/admin/311">📋 311 Requests</a>
+      <a href="/admin/foia">⚖️ FOIA</a>
+      <a href="/admin/analytics">📊 Analytics</a>
       <a href="/admin/suggestions">🤖 AI Suggestions</a>
       <a href="/admin/settings">⚙️ Settings</a>` : ''}
     </nav>
