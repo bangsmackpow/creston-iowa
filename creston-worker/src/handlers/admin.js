@@ -21,6 +21,7 @@ import { escapeHtml } from '../shell.js';
 import { adminPage }          from './admin-page.js';
 import { handleSocialAdmin }   from './social.js';
 import { handleSMSAdmin }      from './sms.js';
+import { handleSiteBuilder }       from './site-builder.js';
 
 export async function handleAdmin(request, env, url) {
   const path = url.pathname;

@@ -9,7 +9,7 @@
 
 import { escapeHtml } from '../shell.js';
 
-export function adminPage(title, body, user) {
+export function adminPage(title, body, user, extraCss = '') {
   const name    = user?.name || user?.email || 'Admin';
   const sha     = user?._env?.CF_PAGES_COMMIT_SHA || '';
   const branch  = user?._env?.CF_PAGES_BRANCH     || '';
@@ -23,6 +23,7 @@ export function adminPage(title, body, user) {
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>${escapeHtml(title)} — Admin</title>
   <link rel="stylesheet" href="/css/admin.css">
+  ${extraCss ? `<link rel="stylesheet" href="${extraCss}">` : ''}
 </head>
 <body class="admin-body">
 
@@ -50,10 +51,12 @@ export function adminPage(title, body, user) {
         <a href="/admin/notices"     class="nav-item" data-p="/admin/notices">📢 Notices</a>
         <a href="/admin/drafts"      class="nav-item" data-p="/admin/drafts">📝 Drafts</a>
         <a href="/admin/media"       class="nav-item" data-p="/admin/media">🖼️ Media</a>
+        <a href="/admin/site-builder" class="nav-item" data-p="/admin/site-builder">🏗️ Site Builder</a>
       </div>
 
       <div class="nav-group">
         <div class="nav-group-label">Citizen Services</div>
+        <a href="/admin/permits"      class="nav-item" data-p="/admin/permits">📋 Permits</a>
         <a href="/admin/311"         class="nav-item" data-p="/admin/311">📋 311 Requests</a>
         <a href="/admin/foia"        class="nav-item" data-p="/admin/foia">⚖️ FOIA</a>
         <a href="/admin/bulletin"    class="nav-item" data-p="/admin/bulletin">📌 Bulletin</a>
