@@ -29,3 +29,6 @@ wrangler-*.log
 # ── Build output ──────────────────────────────────
 /creston-iowa/{css,js,pages,images}/
 *.zip
+
+# ── Playwright Tests ──────────────────────────────────
+/tests/
