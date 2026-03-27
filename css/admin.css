@@ -706,6 +706,7 @@ button { cursor: pointer; }
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+  display: none; /* Replaced by .page-description */
 }
 .role-badge {
   display: inline-block;
@@ -1126,15 +1127,17 @@ button { cursor: pointer; }
 
 /* ── Page description banner ─────────────────────── */
 .page-description {
-  background: #f0f7f3;
-  border-left: 4px solid var(--green-mid, #2d5a3d);
-  border-radius: 0 8px 8px 0;
-  padding: 12px 16px;
-  margin-bottom: 24px;
+  background: white;
+  border: 1px solid var(--border, #ddd8ce);
+  border-left: 5px solid var(--green-mid, #2d5a3d);
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 28px;
   font-family: var(--font-ui, sans-serif);
-  font-size: .84rem;
-  color: #444;
-  line-height: 1.7;
+  font-size: 0.95rem;
+  color: #555;
+  line-height: 1.6;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.02);
 }
 .page-description strong { color: var(--green-deep, #1a3a2a); }
 .page-description a { color: var(--green-mid, #2d5a3d); font-weight: 500; }

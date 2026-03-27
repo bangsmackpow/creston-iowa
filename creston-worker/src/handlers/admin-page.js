@@ -56,7 +56,7 @@ export function adminPage(title, body, user, extraCss = '') {
         <a href="/admin/notices"     class="nav-item${act('/admin/notices')}" data-p="/admin/notices">📢 Notices</a>
         <a href="/admin/drafts"      class="nav-item${act('/admin/drafts')}" data-p="/admin/drafts">📝 Drafts</a>
         <a href="/admin/media"       class="nav-item${act('/admin/media')}" data-p="/admin/media">🖼️ Media</a>
-        <a href="/admin/site-builder" class="nav-item${act('/admin/site-builder')}" data-p="/admin/site-builder">🏗️ Site Builder</a>
+        <a href="/admin/site-builder" class="nav-item${act('/admin/site-builder')}" data-p="/admin/site-builder">🔍 Content Scout</a>
       </div>
 
       <div class="nav-group">

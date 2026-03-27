@@ -1,6 +1,6 @@
 /**
  * src/handlers/site-builder.js
- * Site Builder — AI-powered local data discovery & bulk import.
+ * Content Scout — AI-powered local data discovery & bulk import.
  *
  * Discovers businesses, restaurants, jobs, events, and attractions
  * from free public APIs within a configurable radius, normalizes
@@ -146,14 +146,14 @@ export async function handleSiteBuilder(request, env, url, user) {
 
   const body = `
     <div class="page-description">
-      🏗️ <strong>Site Builder</strong> — Automatically discover local businesses, restaurants, attractions,
+      🔍 <strong>Content Scout</strong> — Automatically discover local businesses, restaurants, attractions,
       and jobs within any radius of a city center. Results are normalized into our markdown format and
       placed in a review queue. Select what you want and click Import — everything lands in Drafts for
       final review before going live. Powered by OpenStreetMap, Wikipedia, USA Jobs, and optionally Google Places.
     </div>
 
     <div class="settings-header">
-      <h2>🏗️ Site Builder</h2>
+      <h2>🔍 Content Scout</h2>
     </div>
 
     <div style="background:white;border:1.5px solid #e0e0e0;border-radius:12px;padding:24px;margin-bottom:28px;">
@@ -191,6 +191,8 @@ export async function handleSiteBuilder(request, env, url, user) {
             ['attractions', '🎈', 'Attractions & Parks'],
             ['directory',   '🏪', 'Businesses & Services'],
             ['jobs',        '💼', 'Jobs'],
+            ['news',        '📰', 'Local News'],
+            ['events',      '📅', 'Chamber Events'],
             ['wikipedia',   '📖', 'Attractions (Wikipedia)'],
           ].map(([val, emoji, label]) => `
           <label style="display:flex;align-items:center;gap:6px;padding:7px 12px;background:#f5f5f5;border:1.5px solid #e0e0e0;border-radius:8px;cursor:pointer;font-family:sans-serif;font-size:.82rem;font-weight:500;">
@@ -367,7 +369,7 @@ export async function handleSiteBuilder(request, env, url, user) {
       function esc(s) { const d=document.createElement('div'); d.textContent=String(s||''); return d.innerHTML; }
     </script>`;
 
-  return adminPage('🏗️ Site Builder', body, user);
+  return adminPage('🔍 Content Scout', body, user);
 }
 
 // ── Discovery engine ───────────────────────────────────────────
@@ -436,6 +438,24 @@ async function handleDiscover(request, env) {
           total += arr.length;
         }
       }).catch(err => console.error('Google Places error:', err.message))
+    );
+  }
+
+  if (types.includes('news')) {
+    tasks.push(
+      fetchNewsFeeds().then(news => {
+        results.news = (results.news || []).concat(news);
+        total += news.length;
+      }).catch(err => console.error('News error:', err.message))
+    );
+  }
+
+  if (types.includes('events')) {
+    tasks.push(
+      fetchChamberEvents().then(events => {
+        results.events = (results.events || []).concat(events);
+        total += events.length;
+      }).catch(err => console.error('Events error:', err.message))
     );
   }
 
@@ -837,7 +857,7 @@ price: "$$"
 tags: [Dine-In]
 featured: false
 summary: ${item.summary || `${item.name} in ${item.address || 'the local area'}.`}
-source: ${item.source || 'Site Builder'}
+source: ${item.source || 'Content Scout'}
 ---
 
 ## About
@@ -858,7 +878,7 @@ location: ${item.address || item.location || ''}
 cost: Free
 featured: false
 summary: ${item.summary?.slice(0, 200) || `${item.name} is a local attraction.`}
-source: ${item.source || 'Site Builder'}
+source: ${item.source || 'Content Scout'}
 ${item.website ? `website: ${item.website}` : ''}
 ---
 
@@ -887,7 +907,7 @@ social_facebook:
 social_instagram: 
 tags: [locally-owned]
 summary: ${item.summary || `${item.name} is a local business.`}
-source: ${item.source || 'Site Builder'}
+source: ${item.source || 'Content Scout'}
 ---
 
 ## About
@@ -897,7 +917,8 @@ ${item.summary || `${item.name} is a local business serving the community.`}
 ${item.address ? `## Find Us\n\n${item.address}` : ''}
 `;
 
-    case 'jobs': return `---
+    case 'jobs':
+      return `---
 title: ${item.title || item.name || 'Job Opening'}
 company: ${item.company || 'Local Employer'}
 location: ${item.location || ''}
@@ -909,7 +930,7 @@ expires: ${item.expires || ''}
 featured: false
 apply_url: ${item.apply_url || ''}
 apply_email: ""
-summary: ${item.summary?.slice(0, 200) || `${item.title || 'Job opening'} at ${item.company || 'local employer'}.`}
+summary: ${item.summary?.slice(0, 200) || (item.title ? `${item.title} at ${item.company}` : 'Job opening')}
 source: ${item.source || 'USA Jobs'}
 ---
 
@@ -922,8 +943,135 @@ ${item.summary || 'See the application link for full details.'}
 ${item.apply_url ? `[Apply online](${item.apply_url})` : 'Contact the employer for application details.'}
 `;
 
-    default: return null;
+    case 'news':
+      return `---
+title: ${item.name || item.title || 'Local News'}
+category: ${item.category || 'Community'}
+date: ${item.date || today}
+author: ${item.author || 'Staff Reporter'}
+summary: ${item.summary || (item.name + ' in Creston, Iowa.')}
+source: ${item.source || 'Content Scout'}
+---
+
+## ${item.name || item.title}
+
+${item.summary || 'Full details are available at the source link.'}
+
+${item.website ? `[Read full article online](${item.website})` : ''}
+`;
+
+    case 'events':
+      return `---
+name: ${item.name || 'Community Event'}
+category: ${item.category || 'Events'}
+emoji: 📅
+tagline: ${item.tagline || 'Happening in Creston'}
+season: ${item.date || 'Soon'}
+location: ${item.location || 'Creston, IA'}
+cost: ${item.cost || 'Free'}
+featured: false
+summary: ${item.summary || (item.name + ' in Creston.')}
+source: ${item.source || 'Content Scout'}
+---
+
+## ${item.name}
+
+**When:** ${item.date || 'TBD'}
+**Where:** ${item.location || 'TBD'}
+
+${item.summary || 'See the event listing for more information.'}
+
+${item.website ? `[Event Website](${item.website})` : ''}
+`;
+
+    default:
+      return null;
   }
+}
+
+// ── News Feeds ────────────────────────────────────────────────
+async function fetchNewsFeeds() {
+  const feeds = [
+    { url: 'https://www.crestonnews.com/arcio/rss/', name: 'Creston News Advertiser' },
+    { url: 'https://unioncountyiowa.gov/feed/',      name: 'Union County Gov' }
+  ];
+  const allNews = [];
+  for (const f of feeds) {
+    try {
+      const res = await fetch(f.url, { headers: { 'User-Agent': 'CrestonCMS/1.0' } });
+      if (!res.ok) continue;
+      const xml = await res.text();
+      const items = parseRss(xml, 'news', f.name);
+      allNews.push(...items);
+    } catch (e) { console.error('Feed error:', f.name, e.message); }
+  }
+  return allNews;
+}
+
+// ── Chamber Events (iCal) ─────────────────────────────────────
+async function fetchChamberEvents() {
+  try {
+    const res = await fetch('https://calendar.google.com/calendar/ical/chamber@crestoniowachamber.com/public/basic.ics');
+    if (!res.ok) return [];
+    const ical = await res.text();
+    const events = [];
+    const veventMatch = ical.matchAll(/BEGIN:VEVENT([\s\S]*?)END:VEVENT/gi);
+    
+    for (const match of veventMatch) {
+      const block = match[1];
+      const summary = (block.match(/SUMMARY:([\s\S]*?)(?:\r?\n[^\s]|UID:)/i)?.[1] || 'Community Event').replace(/\r?\n\s/g, '').trim();
+      const desc    = (block.match(/DESCRIPTION:([\s\S]*?)(?:\r?\n[^\s]|DTSTART:|LOCATION:)/i)?.[1] || '').replace(/\r?\n\s/g, '').trim();
+      const loc     = (block.match(/LOCATION:([\s\S]*?)(?:\r?\n[^\s]|SEQUENCE:|DTSTART:)/i)?.[1] || 'Creston, IA').replace(/\r?\n\s/g, '').trim();
+      const dt      = block.match(/DTSTART[:;](?:VALUE=DATE:)?(\d{8})/i)?.[1];
+      
+      const eventDate = dt ? `${dt.slice(0,4)}-${dt.slice(4,6)}-${dt.slice(6,8)}` : new Date().toISOString().split('T')[0];
+      
+      events.push({
+        id:        `event-${encodeURIComponent(summary).slice(0,30)}-${eventDate}`,
+        type:      'events',
+        source:    'Chamber Calendar',
+        emoji:     '📅',
+        name:      summary,
+        category:  'Community',
+        location:  loc,
+        date:      eventDate,
+        summary:   desc.slice(0, 300) || `${summary} in Creston on ${eventDate}.`,
+        website:   'https://www.crestoniowachamber.com',
+      });
+      if (events.length >= 10) break;
+    }
+    return events;
+  } catch (err) {
+    console.error('iCal error:', err.message);
+    return [];
+  }
+}
+
+function parseRss(xml, type, source) {
+  const items = [];
+  const itemRegex = /<item>([\s\S]*?)<\/item>/gi;
+  let match;
+  while ((match = itemRegex.exec(xml)) !== null && items.length < 10) {
+    const block = match[1];
+    const title = extractXmlTag(block, 'title');
+    const link  = extractXmlTag(block, 'link');
+    const desc  = extractXmlTag(block, 'description').replace(/<[^>]+>/g,'').replace(/&[^;]+;/g, '').trim();
+    const date  = extractXmlTag(block, 'pubDate');
+    
+    items.push({
+      id:      `rss-${encodeURIComponent(title || 'item').slice(0,30)}-${Date.now()}`,
+      type,
+      source,
+      emoji:   '📰',
+      title,
+      name:    title,
+      category: 'Community',
+      summary:  desc.slice(0, 300),
+      website:  link || '',
+      date:     date ? new Date(date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+    });
+  }
+  return items;
 }
 
 // ── Iowa Workforce Development RSS ────────────────────────────
@@ -994,7 +1142,7 @@ async function geocodeCity(city) {
   try {
     const res  = await fetch(
       `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city)}&format=json&limit=1&addressdetails=1`,
-      { headers: { 'User-Agent': 'CrestonCMS/1.0 (community website builder)' } }
+      { headers: { 'User-Agent': 'CrestonCMS/1.0 (community content scout)' } }
     );
     const data = await res.json();
     if (!data?.[0]) return null;
