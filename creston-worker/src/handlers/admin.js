@@ -22,6 +22,9 @@ import { adminPage }          from './admin-page.js';
 import { handleSocialAdmin }   from './social.js';
 import { handleSMSAdmin }      from './sms.js';
 import { handleSiteBuilder }       from './site-builder.js';
+import { handleAdminSearch }       from './search.js';
+import { handleDocumentsAdmin }    from './documents.js';
+import { handleNoticesAdmin }      from './notices.js';
 
 export async function handleAdmin(request, env, url) {
   const path = url.pathname;

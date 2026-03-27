@@ -363,12 +363,12 @@ async function sendBroadcast(request, env, user) {
 
 // ── Public subscribe/unsubscribe ───────────────────────────────
 export async function handleSubscribe(request, env) {
-  if (!env.RESEND_API_KEY || !env.RESEND_AUDIENCE_ID) {
-    return jsonRes({ error: 'Newsletter not configured' }, 503);
+  if (request.method !== 'POST') {
+    return renderSubscribePage(env);
   }
 
-  if (request.method !== 'POST') {
-    return new Response('Method not allowed', { status: 405 });
+  if (!env.RESEND_API_KEY || !env.RESEND_AUDIENCE_ID) {
+    return jsonRes({ error: 'Newsletter not configured' }, 503);
   }
 
   let email, firstName;
@@ -501,6 +501,74 @@ function markdownToEmailHtml(md, subject) {
 }
 
 // ── Helpers ────────────────────────────────────────────────────
+async function renderSubscribePage(env) {
+  const cfg = await getSiteConfig(env);
+  const content = `
+    <section class="section">
+      <div class="container" style="max-width:560px;">
+        <div style="background:white;border:1.5px solid #e0e0e0;border-radius:14px;padding:32px;text-align:center;">
+          <div style="font-size:3rem;margin-bottom:16px;">📧</div>
+          <h2 style="font-family:var(--font-display);font-size:1.4rem;color:var(--green-deep);margin-bottom:8px;">Subscribe to Creston Updates</h2>
+          <p style="font-family:var(--font-body);font-size:.9rem;color:#555;line-height:1.6;margin-bottom:24px;">
+            Get the latest news, events, and job openings from Creston, Iowa delivered to your inbox once a week.
+          </p>
+          <form method="POST" action="/subscribe" id="subscribe-form">
+            <div class="form-group" style="margin-bottom:12px;text-align:left;">
+              <label class="form-label">Email Address *</label>
+              <input type="email" name="email" class="form-input" required placeholder="you@example.com" autofocus>
+            </div>
+            <div class="form-group" style="margin-bottom:20px;text-align:left;">
+              <label class="form-label">First Name (optional)</label>
+              <input type="text" name="first_name" class="form-input" placeholder="Your name">
+            </div>
+            <button type="submit" class="btn btn-primary btn-lg" style="width:100%;">Subscribe Now →</button>
+          </form>
+          <div id="status-msg" style="margin-top:16px;font-family:var(--font-ui);font-size:.88rem;min-height:1.4em;"></div>
+        </div>
+        <p style="text-align:center;margin-top:24px;font-family:var(--font-ui);font-size:.82rem;color:#888;">
+          We respect your privacy. Unsubscribe at any time.
+        </p>
+      </div>
+    </section>
+    <script>
+      const form = document.getElementById('subscribe-form');
+      const msg  = document.getElementById('status-msg');
+      if (form) {
+        form.addEventListener('submit', async (e) => {
+          if (window.location.search.includes('json=1')) return; // allow standard form post if requested
+          e.preventDefault();
+          msg.textContent = '⏳ Subscribing...';
+          msg.style.color = '#888';
+          const fd = new FormData(form);
+          try {
+            const r = await fetch('/subscribe', {
+              method: 'POST',
+              headers: { 'Accept': 'application/json' },
+              body: fd
+            });
+            const d = await r.json();
+            if (r.ok && d.ok) {
+              msg.textContent = '✅ Subscribed! Check your email for confirmation.';
+              msg.style.color = '#2d5a3d';
+              form.reset();
+            } else {
+              msg.textContent = '❌ ' + (d.error || 'Subscription failed. Please try again.');
+              msg.style.color = '#b84040';
+            }
+          } catch(err) {
+            msg.textContent = '❌ Network error. Please try again.';
+            msg.style.color = '#b84040';
+          }
+        });
+      }
+    </script>`;
+
+  return new Response(await renderShell({
+    title: 'Subscribe', description: 'Subscribe to community news and updates from Creston, Iowa.',
+    eyebrow: '📧 Community Updates', heading: 'Stay Informed', config: cfg, content,
+  }), { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+}
+
 function jsonRes(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,

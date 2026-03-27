@@ -28,17 +28,19 @@ import { escapeHtml }    from '../shell.js';
 
 const OVERPASS_API = 'https://overpass-api.de/api/interpreter';
 
-// OSM amenity tags → our content types
+// OSM amenity/leisure/shop tags → our content types
 const OSM_CATEGORY_MAP = {
-  // Food & Drink
-  restaurant:   { type: 'food',       cat: 'american',      emoji: '🍽️' },
-  fast_food:    { type: 'food',       cat: 'fast-food',     emoji: '🍔' },
-  cafe:         { type: 'food',       cat: 'cafe',          emoji: '☕' },
-  bar:          { type: 'food',       cat: 'bar',           emoji: '🍺' },
-  pub:          { type: 'food',       cat: 'bar',           emoji: '🍺' },
-  ice_cream:    { type: 'food',       cat: 'dessert',       emoji: '🍦' },
-  bakery:       { type: 'food',       cat: 'bakery',        emoji: '🥐' },
-  // Attractions & Places
+  // Food & Drink (type: 'food')
+  restaurant:   { type: 'food',       cat: 'American',      emoji: '🍽️' },
+  fast_food:    { type: 'food',       cat: 'Fast-food',     emoji: '🍔' },
+  cafe:         { type: 'food',       cat: 'Cafe',          emoji: '☕' },
+  bar:          { type: 'food',       cat: 'Bar',           emoji: '🍺' },
+  pub:          { type: 'food',       cat: 'Bar',           emoji: '🍺' },
+  ice_cream:    { type: 'food',       cat: 'Dessert',       emoji: '🍦' },
+  bakery:       { type: 'food',       cat: 'Bakery',        emoji: '🥐' },
+  pizza:        { type: 'food',       cat: 'Pizza',         emoji: '🍕' },
+  
+  // Attractions & Places (type: 'attractions')
   museum:       { type: 'attractions', cat: 'History',      emoji: '🏛️' },
   park:         { type: 'attractions', cat: 'Recreation',   emoji: '🌳' },
   library:      { type: 'attractions', cat: 'Education',    emoji: '📚' },
@@ -47,27 +49,38 @@ const OSM_CATEGORY_MAP = {
   arts_centre:  { type: 'attractions', cat: 'Arts',         emoji: '🎨' },
   community_centre: { type: 'attractions', cat: 'Community', emoji: '🤝' },
   place_of_worship: { type: 'attractions', cat: 'Community', emoji: '⛪' },
-  // Business/Directory
-  bank:         { type: 'directory', cat: 'Finance',        emoji: '🏦' },
-  pharmacy:     { type: 'directory', cat: 'Health',         emoji: '💊' },
-  hospital:     { type: 'directory', cat: 'Health',         emoji: '🏥' },
-  clinic:       { type: 'directory', cat: 'Health',         emoji: '🏥' },
-  dentist:      { type: 'directory', cat: 'Health',         emoji: '🦷' },
-  veterinary:   { type: 'directory', cat: 'Services',       emoji: '🐾' },
-  car_repair:   { type: 'directory', cat: 'Automotive',     emoji: '🔧' },
-  fuel:         { type: 'directory', cat: 'Automotive',     emoji: '⛽' },
+  townhall:     { type: 'attractions', cat: 'History',      emoji: '🏛️' },
+  viewpoint:    { type: 'attractions', cat: 'Recreation',   emoji: '🔭' },
+  
+  // Business/Directory (type: 'directory')
+  bank:         { type: 'directory', cat: 'Professional',   emoji: '🏦' },
+  atm:          { type: 'directory', cat: 'Services',       emoji: '🏧' },
+  pharmacy:     { type: 'directory', cat: 'Healthcare',     emoji: '💊' },
+  hospital:     { type: 'directory', cat: 'Healthcare',     emoji: '🏥' },
+  clinic:       { type: 'directory', cat: 'Healthcare',     emoji: '🏥' },
+  dentist:      { type: 'directory', cat: 'Healthcare',     emoji: '🦷' },
+  doctor:       { type: 'directory', cat: 'Healthcare',     emoji: '👨‍⚕️' },
+  veterinary:   { type: 'directory', cat: 'Healthcare',     emoji: '🐾' },
+  car_repair:   { type: 'directory', cat: 'Services',       emoji: '🔧' },
+  car_wash:     { type: 'directory', cat: 'Services',       emoji: '🧼' },
+  fuel:         { type: 'directory', cat: 'Services',       emoji: '⛽' },
   supermarket:  { type: 'directory', cat: 'Retail',         emoji: '🛒' },
   convenience:  { type: 'directory', cat: 'Retail',         emoji: '🏪' },
+  hardware:     { type: 'directory', cat: 'Retail',         emoji: '🔨' },
+  clothes:      { type: 'directory', cat: 'Retail',         emoji: '👕' },
+  gift:         { type: 'directory', cat: 'Retail',         emoji: '🎁' },
   hairdresser:  { type: 'directory', cat: 'Services',       emoji: '💇' },
+  beauty:       { type: 'directory', cat: 'Services',       emoji: '💄' },
   laundry:      { type: 'directory', cat: 'Services',       emoji: '👕' },
-  hotel:        { type: 'directory', cat: 'Lodging',        emoji: '🏨' },
-  motel:        { type: 'directory', cat: 'Lodging',        emoji: '🏨' },
-  gym:          { type: 'directory', cat: 'Health',         emoji: '💪' },
-  // Leisure / Sports
-  swimming_pool: { type: 'attractions', cat: 'Recreation',  emoji: '🏊' },
-  sports_centre: { type: 'attractions', cat: 'Recreation',  emoji: '⚽' },
-  golf_course:  { type: 'attractions', cat: 'Recreation',   emoji: '⛳' },
-  bowling_alley:{ type: 'attractions', cat: 'Recreation',   emoji: '🎳' },
+  post_office:  { type: 'directory', cat: 'Services',       emoji: '📯' },
+  hotel:        { type: 'directory', cat: 'Services',       emoji: '🏨' },
+  motel:        { type: 'directory', cat: 'Services',       emoji: '🏨' },
+  gym:          { type: 'directory', cat: 'Healthcare',     emoji: '💪' },
+  real_estate:  { type: 'directory', cat: 'Professional',   emoji: '🏠' },
+  lawyer:       { type: 'directory', cat: 'Professional',   emoji: '⚖️' },
+  insurance:    { type: 'directory', cat: 'Professional',   emoji: '🛡️' },
+  school:       { type: 'directory', cat: 'Nonprofit',      emoji: '🏫' },
+  kindergarten: { type: 'directory', cat: 'Nonprofit',      emoji: '🧒' },
 };
 
 // ── Main page ─────────────────────────────────────────────────
@@ -440,7 +453,7 @@ async function handleDiscover(request, env) {
     if (!results[type].length) delete results[type];
   }
 
-  // Step 4: AI enrichment for items missing descriptions
+  // Step 4: AI enrichment for items missing descriptions & taglines
   if (enrich && env.AI && total > 0) {
     await enrichWithAI(env, results);
   }
@@ -771,23 +784,37 @@ function mapGoogleType(types) {
 // ── AI enrichment ─────────────────────────────────────────────
 async function enrichWithAI(env, results) {
   for (const [type, items] of Object.entries(results)) {
-    for (const item of items.slice(0, 10)) { // limit AI calls
-      if (item.summary && item.summary.length > 50) continue;
+    for (const item of items.slice(0, 15)) { // limit AI calls per batch
+      if (item.summary && item.summary.length > 50 && item.tagline) continue;
 
       try {
-        const prompt = `Write a 1-2 sentence description for this local business/place in a community website.
+        const prompt = `You are a local community website editor. Write a tagline and description for this business.
 Name: ${item.name}
 Type: ${type} / ${item.category || ''}
 Address: ${item.address || 'local area'}
-Return ONLY the description, no quotes, no preamble.`;
+
+Return ONLY a JSON object with keys "tagline" (5-10 words maximum) and "summary" (1-2 sentences). 
+No other text, no preamble. Just the JSON.`;
 
         const result = await env.AI.run('@cf/meta/llama-3.1-8b-instruct', {
-          prompt, max_tokens: 80
+          prompt, max_tokens: 150, stream: false
         });
-        if (result?.response?.trim()) {
-          item.summary = result.response.trim().replace(/^["']|["']$/g, '');
+        
+        let response = result?.response || '';
+        // Try to find JSON block if AI hallucinated preamble
+        const jsonMatch = response.match(/\{[\s\S]*?\}/);
+        if (jsonMatch) {
+          const data = JSON.parse(jsonMatch[0]);
+          if (data.tagline) item.tagline = data.tagline.replace(/^["']|["']$/g, '');
+          if (data.summary) item.summary = data.summary.replace(/^["']|["']$/g, '');
+        } else if (response.length > 10 && !response.includes('{')) {
+          // Fallback if it just returned text
+          item.summary = response.trim().replace(/^["']|["']$/g, '');
+          item.tagline = item.tagline || (item.summary.split('.')[0] + ' in Creston');
         }
-      } catch { /* skip on error */ }
+      } catch (err) { 
+        console.error('AI enrichment failed for', item.name, err.message);
+      }
     }
   }
 }
@@ -800,7 +827,7 @@ function itemToMarkdown(item) {
   switch (item.type) {
     case 'food': return `---
 name: ${item.name || 'Restaurant'}
-category: ${(item.category || 'other').toLowerCase()}
+category: ${(item.category || 'American').toLowerCase()}
 emoji: ${item.emoji || '🍽️'}
 address: ${item.address || ''}
 phone: "${item.phone || ''}"
@@ -815,7 +842,7 @@ source: ${item.source || 'Site Builder'}
 
 ## About
 
-${item.summary || `${item.name} is a local dining establishment.`}
+${item.summary || `${item.name} is a local dining establishment serving the Creston community.`}
 
 ${item.hours ? `## Hours\n\n${item.hours}` : ''}
 ${item.address ? `## Location\n\n${item.address}` : ''}
@@ -825,7 +852,7 @@ ${item.address ? `## Location\n\n${item.address}` : ''}
 name: ${item.name || 'Attraction'}
 category: ${item.category || 'Recreation'}
 emoji: ${item.emoji || '🎈'}
-tagline: ${item.summary?.split('.')[0] || 'Local attraction'}
+tagline: ${item.tagline || item.summary?.split('.')[0] || 'Local attraction'}
 season: Year-round
 location: ${item.address || item.location || ''}
 cost: Free
@@ -837,7 +864,7 @@ ${item.website ? `website: ${item.website}` : ''}
 
 ## Overview
 
-${item.summary || `${item.name} is a notable local landmark and attraction.`}
+${item.summary || `${item.name} is a notable local landmark and attraction in the Creston area.`}
 
 ## Visitor Information
 
@@ -846,13 +873,19 @@ ${item.address || item.location || 'Located in the local area.'}
 
     case 'directory': return `---
 name: ${item.name || 'Business'}
-category: ${(item.category || 'other').toLowerCase()}
+category: ${(item.category || 'Services').toLowerCase()}
+tagline: ${item.tagline || 'Local community business'}
 address: ${item.address || ''}
 phone: "${item.phone || ''}"
+email: ""
 website: ${item.website || ''}
 hours: "${item.hours || ''}"
-email: ""
 featured: false
+image: 
+logo: 
+social_facebook: 
+social_instagram: 
+tags: [locally-owned]
 summary: ${item.summary || `${item.name} is a local business.`}
 source: ${item.source || 'Site Builder'}
 ---
@@ -860,6 +893,8 @@ source: ${item.source || 'Site Builder'}
 ## About
 
 ${item.summary || `${item.name} is a local business serving the community.`}
+
+${item.address ? `## Find Us\n\n${item.address}` : ''}
 `;
 
     case 'jobs': return `---
@@ -886,6 +921,10 @@ ${item.summary || 'See the application link for full details.'}
 
 ${item.apply_url ? `[Apply online](${item.apply_url})` : 'Contact the employer for application details.'}
 `;
+
+    default: return null;
+  }
+}
 
     default: return null;
   }

@@ -63,6 +63,15 @@ const PERMIT_TYPES = {
     dept:     'Fire Department',
     days:     1,
   },
+  building_permit: {
+    label:    'Building Permit',
+    emoji:    '🏗️',
+    desc:     'Required for construction, remodeling, or structural changes to property.',
+    fee:      25000, // $250.00 base
+    fields:   ['address', 'description'],
+    dept:     'Planning & Zoning',
+    days:     7,
+  },
 };
 
 const STATUS_LABELS = {

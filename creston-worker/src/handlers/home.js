@@ -100,7 +100,7 @@ export async function handleHome(request, env, url) {
 
     // Replace static news-grid with live articles
     if (rest.length > 0) {
-      const gStart = html.indexOf('<div class="news-grid mt-3">');
+      const gStart = html.indexOf('<div class="news-grid mt-3" id="news-grid">');
       if (gStart > -1) {
         const gEnd = findClosingDiv(html, gStart);
         html = html.slice(0, gStart)
@@ -121,7 +121,7 @@ export async function handleHome(request, env, url) {
   }
 
   // ── 3. Live jobs mini-board ────────────────────────────────
-  const mjStart = html.indexOf('<div class="mini-jobs">');
+  const mjStart = html.indexOf('<div class="mini-jobs" id="mini-jobs">');
   if (mjStart > -1) {
     const mjEnd = findClosingDiv(html, mjStart);
     const miniRows = jobItems.map(j => `
