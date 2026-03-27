@@ -1,109 +1,77 @@
-# creston-iowa.com
+# 🌾 Creston, Iowa — The Crest of Iowa
 
-Community website for Creston, Iowa — The Crest of Iowa.
+Dynamic, AI-powered community website and CMS for Creston, Iowa.
 
-## Stack
-- 100% static HTML/CSS/JS — no build step required
-- Cloudflare Pages ready (includes `_redirects`, `_headers`, `sitemap.xml`, `robots.txt`)
-- Mobile-first responsive design
-- Google Fonts (Playfair Display, Source Serif 4, DM Sans)
+## 🚀 Modern Stack
+- **Edge Runtime**: Cloudflare Workers for logic and routing.
+- **Database**: Cloudflare D1 (SQLite at the edge) for users, analytics, and metadata.
+- **Storage**: Cloudflare R2 (S3-compatible) for markdown content and media.
+- **AI**: Cloudflare Workers AI (Llama 3) for content enrichment and drafting.
+- **Frontend**: Clean, premium Vanilla CSS/JS with server-side rendering for optimal SEO and performance.
 
-## File Structure
-```
+## 🛠️ Key Features
+- **Admin Dashboard (`/admin`)**: Secure portal for managing all community content.
+- **🔍 Content Scout**: Automated discovery tool that finds:
+  - 🍽️ **Dining**: Restaurants from OpenStreetMap & Google Places.
+  - 📰 **Local News**: Real-time headlines from Creston News Advertiser & Union County feeds.
+  - 📅 **Community Events**: Live calendar sync with the Creston Chamber of Commerce (iCal).
+  - 💼 **Jobs**: Aggregated listings from USA Jobs and Iowa Workforce Development.
+  - 🎈 **Attractions**: Points of interest from Wikipedia and OSM.
+- **Draft & Publish Workflow**: Review discovered content, edit in markdown, and schedule for future publishing.
+- **Role-Based Access**: Multi-user support with `admin` and `superadmin` permissions.
+- **Integrated Search**: Site-wide search powered by D1 indexing.
+
+## 📁 Project Structure
+```text
 creston-iowa/
-├── index.html              ← Homepage
-├── _redirects              ← Cloudflare URL redirects
-├── _headers                ← Security & cache headers
-├── robots.txt
-├── sitemap.xml
-├── css/
-│   ├── style.css           ← Design system (variables, nav, footer, buttons)
-│   ├── home.css            ← Homepage-specific styles
-│   └── pages.css           ← All sub-page styles
-├── js/
-│   ├── nav.js              ← Shared nav + footer injection
-│   └── home.js             ← Homepage animations
-├── pages/
-│   ├── about.html          ← History & heritage (the "Crest of Iowa" story)
-│   ├── dining.html         ← Restaurant guide with category filter
-│   ├── attractions.html    ← Things to do (Balloon Days, lakes, murals, etc.)
-│   ├── news.html           ← Community news + links to official sources
-│   ├── government.html     ← City, police, emergency contacts
-│   ├── chamber.html        ← Chamber of Commerce & business resources
-│   ├── jobs.html           ← Job board + paid listing system
-│   ├── advertise.html      ← Ad packages & rates
-│   └── contact.html        ← Contact / news submissions
-└── images/                 ← Add your own images here
+├── creston-worker/         ← Core CMS logic
+│   ├── src/
+│   │   ├── worker.js       ← Main entry & routing
+│   │   ├── handlers/       ← Sub-page and tool handlers (including Content Scout)
+│   │   ├── db/             ← D1 database schemas and helpers
+│   │   └── shell.js        ← HTML/Layout templates
+│   ├── css/                ← Admin and Public design systems
+│   └── seed-r2.sh          ← Initial content & template library
+├── tests/                  ← Playwright regression suite
+└── _redirects              ← Cloudflare Pages routing rules
 ```
 
-## Deploying to Cloudflare Pages
+## 🌩️ Deployment & Setup
 
-### Option A — GitHub (recommended)
-1. Push this folder to a GitHub repo (e.g. `creston-iowa-site`)
-2. Go to [Cloudflare Pages](https://pages.cloudflare.com)
-3. Click **"Create a project"** → Connect to GitHub
-4. Select your repo
-5. **Build settings:**
-   - Framework preset: `None`
-   - Build command: *(leave blank)*
-   - Build output directory: `/` (root)
-6. Click **Deploy**
-7. Point `creston-iowa.com` DNS to the Pages project via Cloudflare DNS
+### 1. Infrastructure
+Ensure you have the following Cloudflare services enabled:
+- **D1 Database**: Create a database named `creston-auth` and run migrations.
+- **R2 Bucket**: Create a bucket named `crestoniowa`.
+- **Worker**: Deploy the `creston-worker` directory using Wrangler.
 
-### Option B — Direct Upload
-1. Go to Cloudflare Pages → Create Project → **Upload Assets**
-2. Drag and drop the entire `creston-iowa/` folder
-3. Set custom domain to `creston-iowa.com`
+### 2. Environment Variables
+Configure these secrets in the Cloudflare dashboard or `.dev.vars`:
+- `ADMIN_EMAIL`: Default superadmin login.
+- `ADMIN_PASSWORD`: Secure password for the admin portal.
+- `GOOGLE_PLACES_KEY`: (Optional) For higher quality business data in Content Scout.
 
-## Adding Custom Domain
-1. In Cloudflare Pages project → Custom Domains → Add
-2. Enter `creston-iowa.com` and `www.creston-iowa.com`
-3. Cloudflare handles SSL automatically
+### 3. Quick Start (Local Development)
+```bash
+cd creston-worker
+npm install
+npx wrangler dev
+```
 
-## Monetization
-The site has three revenue streams built in:
+## 📈 Monitoring & SEO
+- **Analytics**: Built-in privacy-focused visitor tracking using D1.
+- **SEO**: Dynamic `sitemap.xml` and `robots.txt` generation; 100% crawlable semantic HTML.
+- **Testing**: Run `npx playwright test` to verify all admin and public routes.
 
-### 1. Advertising
-- Ad slots are placed throughout: leaderboard banners, sidebar squares, ad strips
-- Ad packages defined in `/pages/advertise.html`
-- Contact: `advertise@creston-iowa.com`
-- Rates: $29–$99/month depending on placement
+## ✉️ Contact & Support
+- General: `hello@creston-iowa.com`
+- News: `news@creston-iowa.com`
+- Support: `admin@creston-iowa.com`
 
-### 2. Job Board Listings
-- Employers submit via email: `jobs@creston-iowa.com`
-- Pricing: $49 Basic / $89 Featured / $149 Premium (60 days)
-- Payment via PayPal invoice, then manually publish listing
-- For automated payments, integrate Stripe Checkout (separate project)
-
-### 3. Future: Stripe Integration
-To automate job post payments, you can add a Stripe Payment Link
-to the "Post a Job" button — no backend required, just a hosted checkout URL.
-
-## Updating Content
-Since this is static HTML, you update pages directly in a text editor or VS Code:
-- **Add a restaurant:** Edit `pages/dining.html` — copy an existing `.restaurant-card` block
-- **Add a news article:** Edit `pages/news.html` — copy an existing `.news-article` block
-- **Add a job listing:** Edit `pages/jobs.html` — copy an existing `.job-listing` block
-- **Add an attraction:** Edit `pages/attractions.html` — copy an existing `.attraction-detail` block
-
-## Future Enhancements
-- Integrate OpenWeatherMap API for live weather widget
-- Add Stripe Payment Links for job board checkout
-- Connect a headless CMS (your existing PocketBase project!) for news articles
-- Add an events calendar widget
-- Email newsletter (Mailchimp or Buttondown embed)
-- Google Analytics 4 (add GA4 snippet to nav.js)
-
-## Emails to Set Up
-- `hello@creston-iowa.com` — General contact
-- `news@creston-iowa.com` — News tips
-- `jobs@creston-iowa.com` — Job board
-- `advertise@creston-iowa.com` — Ad inquiries
-
-Set these up via Cloudflare Email Routing (free) pointing to your personal inbox.
+---
+© 2026 Creston, Iowa Community Project. Built for the citizens of the Crest of Iowa.
 
 ## SEO Notes
-- All pages have `<title>` and `<meta description>` tags
-- `sitemap.xml` is included — submit to Google Search Console
-- `robots.txt` allows all crawlers
-- Semantic HTML throughout (article, aside, nav, footer, section)
+- All pages have `<title>` and `<meta description>` tags.
+- `sitemap.xml` is dynamically generated.
+- `robots.txt` is included for crawler guidance.
+- Semantic HTML5 used throughout for accessibility and SEO.
