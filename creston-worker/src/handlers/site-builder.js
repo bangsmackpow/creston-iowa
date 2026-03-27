@@ -84,7 +84,7 @@ const OSM_CATEGORY_MAP = {
 };
 
 // ── Main page ─────────────────────────────────────────────────
-export async function handleSiteBuilder(request, env, url) {
+export async function handleSiteBuilder(request, env, url, user) {
   if (request.method === 'POST') {
     const path = url.pathname;
     if (path === '/admin/site-builder/discover') return handleDiscover(request, env);
@@ -921,10 +921,6 @@ ${item.summary || 'See the application link for full details.'}
 
 ${item.apply_url ? `[Apply online](${item.apply_url})` : 'Contact the employer for application details.'}
 `;
-
-    default: return null;
-  }
-}
 
     default: return null;
   }

@@ -35,8 +35,11 @@ export async function handleAdmin(request, env, url) {
 
   const user = await getAuthUser(request, env);
   if (!user) return new Response(null, { status: 302, headers: { Location: '/admin/login' } });
-  // Attach env to user so build info is available in adminPage
-  if (user) user._env = env;
+  // Attach env and current path to user so info is available in adminPage
+  if (user) {
+    user._env = env;
+    user._path = path;
+  }
 
   if (path === '/admin' || path === '/admin/')    return renderDashboard(env, user);
   if (path.startsWith('/admin/pages'))            return handlePages(request, env, url, user);
@@ -206,21 +209,21 @@ async function renderDashboard(env, user) {
     <a href="/admin/food/new"        class="action-btn btn-food">+ Add Restaurant</a>
     <a href="/admin/news/new"        class="action-btn btn-news">+ Write Article</a>
     <a href="/admin/attractions/new" class="action-btn btn-attr">+ Add Attraction</a>
-    <a href="/admin/companies/new"   class="action-btn" style="background:#6a3a7a;">+ New Company</a>
-    <a href="/admin/users/new"       class="action-btn" style="background:#2e4163;">+ Invite User</a>
-    <a href="/admin/pages/new"        class="action-btn" style="background:#2a5a7a;">📄 New Page</a>
-    <a href="/admin/media"            class="action-btn" style="background:#5a3a7a;">🖼️ Media Library</a>
-    <a href="/admin/meetings/new"      class="action-btn" style="background:#2a6a5a;">📅 New Meeting</a>
-    <a href="/admin/events/new"        class="action-btn" style="background:#2a5a7a;">🎈 New Event</a>
-    <a href="/admin/directory/new"      class="action-btn" style="background:#5a3a2a;">🏪 Add Business</a>
-    <a href="/admin/suggestions"       class="action-btn" style="background:#4a2a7a;">🤖 AI Suggestions</a>
-    <a href="/admin/newsletter/new"    class="action-btn" style="background:#1a3a6a;">📧 New Campaign</a>
-    <a href="/admin/settings"          class="action-btn" style="background:#444444;">⚙️ Site Settings</a>` : `
+    <a href="/admin/companies/new"   class="action-btn btn-company">+ New Company</a>
+    <a href="/admin/users/new"       class="action-btn btn-user">+ Invite User</a>
+    <a href="/admin/pages/new"        class="action-btn btn-page">📄 New Page</a>
+    <a href="/admin/media"            class="action-btn btn-media">🖼️ Media Library</a>
+    <a href="/admin/meetings/new"      class="action-btn btn-meeting">📅 New Meeting</a>
+    <a href="/admin/events/new"        class="action-btn btn-event">🎈 New Event</a>
+    <a href="/admin/directory/new"      class="action-btn btn-directory">🏪 Add Business</a>
+    <a href="/admin/suggestions"       class="action-btn btn-ai">🤖 AI Suggestions</a>
+    <a href="/admin/newsletter/new"    class="action-btn btn-newsletter">📧 New Campaign</a>
+    <a href="/admin/settings"          class="action-btn btn-settings">⚙️ Site Settings</a>` : `
     <a href="/admin/jobs/new" class="action-btn btn-jobs">+ Post a Job</a>
-    <a href="/admin/account"  class="action-btn" style="background:#2e4163;">⚙️ My Account</a>`;
+    <a href="/admin/account"  class="action-btn btn-user">⚙️ My Account</a>`;
 
   return adminPage('Dashboard', `
-    <div class="welcome-bar">
+    <div class="page-description">
       Welcome back, <strong>${escapeHtml(user.name)}</strong>
       ${user.company_name ? ` — <span style="color:var(--gold,#c9933a)">${escapeHtml(user.company_name)}</span>` : ''}
       <span class="role-badge role-${user.role}">${user.role}</span>

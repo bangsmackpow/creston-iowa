@@ -175,13 +175,18 @@ button { cursor: pointer; }
   height: var(--topbar-h);
   background: white;
   border-bottom: 1px solid #e5e7eb;
-  display: flex;
-  align-items: center;
-  padding: 0 24px;
-  gap: 16px;
   position: sticky;
   top: 0;
   z-index: 100;
+}
+.admin-topbar-inner {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  padding: 0 24px;
+  gap: 16px;
+  max-width: 1280px;
+  margin-inline: auto;
 }
 .topbar-menu-btn {
   display: none;
@@ -221,7 +226,11 @@ button { cursor: pointer; }
 }
 
 /* ── Mobile ──────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .admin-stats { grid-template-columns: repeat(3, 1fr); }
+}
 @media (max-width: 768px) {
+  .admin-stats { grid-template-columns: repeat(2, 1fr); }
   .admin-sidebar {
     transform: translateX(calc(-1 * var(--sidebar-w)));
   }
@@ -232,6 +241,9 @@ button { cursor: pointer; }
   .admin-wrap { margin-left: 0; }
   .topbar-menu-btn { display: block; }
   .admin-main { padding: 20px 16px; }
+}
+@media (max-width: 480px) {
+  .admin-stats { grid-template-columns: 1fr; }
 }
 
 /* ─── Dashboard Stats ───────────────────────────── */
@@ -307,6 +319,16 @@ button { cursor: pointer; }
 .btn-food { background: var(--gold, #c9933a); }
 .btn-news { background: var(--navy-mid, #2e4163); }
 .btn-attr { background: #6a3a7a; }
+.btn-company { background: #6a3a7a; }
+.btn-user    { background: #2e4163; }
+.btn-page    { background: #2a5a7a; }
+.btn-media   { background: #5a3a7a; }
+.btn-meeting { background: #2a6a5a; }
+.btn-event   { background: #2a5a7a; }
+.btn-directory { background: #5a3a2a; }
+.btn-ai      { background: #4a2a7a; }
+.btn-newsletter { background: #1a3a6a; }
+.btn-settings   { background: #444444; }
 .action-btn:hover { opacity: .85; transform: translateY(-1px); color: white; }
 
 /* ─── Admin Links ───────────────────────────────── */

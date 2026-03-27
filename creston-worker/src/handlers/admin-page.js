@@ -15,6 +15,10 @@ export function adminPage(title, body, user, extraCss = '') {
   const branch  = user?._env?.CF_PAGES_BRANCH     || '';
   const short   = sha ? sha.slice(0, 7) : '';
   const isProd  = !branch || branch === 'main' || branch === 'master';
+  
+  // Current active path helper
+  const cur = user?._path || '';
+  const act = (p) => ((p === '/admin') ? (cur === '/admin') : (cur === p || cur.startsWith(p + '/'))) ? ' active' : '';
 
   return new Response(`<!DOCTYPE html>
 <html lang="en">
@@ -39,47 +43,48 @@ export function adminPage(title, body, user, extraCss = '') {
     <nav class="sidebar-nav" aria-label="Admin navigation">
       <div class="nav-group">
         <div class="nav-group-label">Content</div>
-        <a href="/admin/news"        class="nav-item" data-p="/admin/news">📰 News</a>
-        <a href="/admin/food"        class="nav-item" data-p="/admin/food">🍽️ Dining</a>
-        <a href="/admin/attractions" class="nav-item" data-p="/admin/attractions">🎈 Attractions</a>
-        <a href="/admin/jobs"        class="nav-item" data-p="/admin/jobs">💼 Jobs</a>
-        <a href="/admin/events"      class="nav-item" data-p="/admin/events">📅 Events</a>
-        <a href="/admin/meetings"    class="nav-item" data-p="/admin/meetings">🏛️ Meetings</a>
-        <a href="/admin/directory"   class="nav-item" data-p="/admin/directory">🏪 Directory</a>
-        <a href="/admin/pages"       class="nav-item" data-p="/admin/pages">📄 Pages</a>
-        <a href="/admin/documents"   class="nav-item" data-p="/admin/documents">📂 Documents</a>
-        <a href="/admin/notices"     class="nav-item" data-p="/admin/notices">📢 Notices</a>
-        <a href="/admin/drafts"      class="nav-item" data-p="/admin/drafts">📝 Drafts</a>
-        <a href="/admin/media"       class="nav-item" data-p="/admin/media">🖼️ Media</a>
-        <a href="/admin/site-builder" class="nav-item" data-p="/admin/site-builder">🏗️ Site Builder</a>
+        <a href="/admin"             class="nav-item${act('/admin')}" data-p="/admin">🏠 Dashboard</a>
+        <a href="/admin/news"        class="nav-item${act('/admin/news')}" data-p="/admin/news">📰 News</a>
+        <a href="/admin/food"        class="nav-item${act('/admin/food')}" data-p="/admin/food">🍽️ Dining</a>
+        <a href="/admin/attractions" class="nav-item${act('/admin/attractions')}" data-p="/admin/attractions">🎈 Attractions</a>
+        <a href="/admin/jobs"        class="nav-item${act('/admin/jobs')}" data-p="/admin/jobs">💼 Jobs</a>
+        <a href="/admin/events"      class="nav-item${act('/admin/events')}" data-p="/admin/events">📅 Events</a>
+        <a href="/admin/meetings"    class="nav-item${act('/admin/meetings')}" data-p="/admin/meetings">🏛️ Meetings</a>
+        <a href="/admin/directory"   class="nav-item${act('/admin/directory')}" data-p="/admin/directory">🏪 Directory</a>
+        <a href="/admin/pages"       class="nav-item${act('/admin/pages')}" data-p="/admin/pages">📄 Pages</a>
+        <a href="/admin/documents"   class="nav-item${act('/admin/documents')}" data-p="/admin/documents">📂 Documents</a>
+        <a href="/admin/notices"     class="nav-item${act('/admin/notices')}" data-p="/admin/notices">📢 Notices</a>
+        <a href="/admin/drafts"      class="nav-item${act('/admin/drafts')}" data-p="/admin/drafts">📝 Drafts</a>
+        <a href="/admin/media"       class="nav-item${act('/admin/media')}" data-p="/admin/media">🖼️ Media</a>
+        <a href="/admin/site-builder" class="nav-item${act('/admin/site-builder')}" data-p="/admin/site-builder">🏗️ Site Builder</a>
       </div>
 
       <div class="nav-group">
         <div class="nav-group-label">Citizen Services</div>
-        <a href="/admin/permits"      class="nav-item" data-p="/admin/permits">📋 Permits</a>
-        <a href="/admin/311"         class="nav-item" data-p="/admin/311">📋 311 Requests</a>
-        <a href="/admin/foia"        class="nav-item" data-p="/admin/foia">⚖️ FOIA</a>
-        <a href="/admin/bulletin"    class="nav-item" data-p="/admin/bulletin">📌 Bulletin</a>
+        <a href="/admin/permits"      class="nav-item${act('/admin/permits')}" data-p="/admin/permits">📋 Permits</a>
+        <a href="/admin/311"         class="nav-item${act('/admin/311')}" data-p="/admin/311">📋 311 Requests</a>
+        <a href="/admin/foia"        class="nav-item${act('/admin/foia')}" data-p="/admin/foia">⚖️ FOIA</a>
+        <a href="/admin/bulletin"    class="nav-item${act('/admin/bulletin')}" data-p="/admin/bulletin">📌 Bulletin</a>
       </div>
 
       <div class="nav-group">
         <div class="nav-group-label">Communications</div>
-        <a href="/admin/newsletter"  class="nav-item" data-p="/admin/newsletter">📧 Newsletter</a>
-        <a href="/admin/suggestions" class="nav-item" data-p="/admin/suggestions">🤖 AI Suggestions</a>
+        <a href="/admin/newsletter"  class="nav-item${act('/admin/newsletter')}" data-p="/admin/newsletter">📧 Newsletter</a>
+        <a href="/admin/suggestions" class="nav-item${act('/admin/suggestions')}" data-p="/admin/suggestions">🤖 AI Suggestions</a>
       </div>
 
       <div class="nav-group">
         <div class="nav-group-label">Site</div>
-        <a href="/admin/analytics"   class="nav-item" data-p="/admin/analytics">📊 Analytics</a>
-        <a href="/admin/billing"     class="nav-item" data-p="/admin/billing">💳 Billing</a>
-        <a href="/admin/companies"   class="nav-item" data-p="/admin/companies">🏢 Companies</a>
-        <a href="/admin/users"       class="nav-item" data-p="/admin/users">👥 Users</a>
-        <a href="/admin/settings"    class="nav-item" data-p="/admin/settings">⚙️ Settings</a>
+        <a href="/admin/analytics"   class="nav-item${act('/admin/analytics')}" data-p="/admin/analytics">📊 Analytics</a>
+        <a href="/admin/billing"     class="nav-item${act('/admin/billing')}" data-p="/admin/billing">💳 Billing</a>
+        <a href="/admin/companies"   class="nav-item${act('/admin/companies')}" data-p="/admin/companies">🏢 Companies</a>
+        <a href="/admin/users"       class="nav-item${act('/admin/users')}" data-p="/admin/users">👥 Users</a>
+        <a href="/admin/settings"    class="nav-item${act('/admin/settings')}" data-p="/admin/settings">⚙️ Settings</a>
       </div>
     </nav>
 
     <div class="sidebar-footer">
-      <a href="/admin/account">👤 ${escapeHtml(name)}</a>
+      <a href="/admin/account" class="${act('/admin/account')}">👤 ${escapeHtml(name)}</a>
       <a href="/" target="_blank">View Site ↗</a>
       <a href="/admin/logout">Log out</a>
     </div>
@@ -90,9 +95,11 @@ export function adminPage(title, body, user, extraCss = '') {
 
 <div class="admin-wrap">
   <header class="admin-topbar">
-    <button class="topbar-menu-btn" onclick="toggleSidebar()" aria-label="Toggle menu">☰</button>
-    <div class="topbar-title">${escapeHtml(title)}</div>
-    <a href="/" target="_blank" class="topbar-site-link">View Site ↗</a>
+    <div class="admin-topbar-inner">
+      <button class="topbar-menu-btn" onclick="toggleSidebar()" aria-label="Toggle menu">☰</button>
+      <div class="topbar-title">${escapeHtml(title)}</div>
+      <a href="/" target="_blank" class="topbar-site-link">View Site ↗</a>
+    </div>
   </header>
   <main class="admin-main">
     ${body}
@@ -103,8 +110,9 @@ export function adminPage(title, body, user, extraCss = '') {
   // Active nav link
   var p = location.pathname;
   document.querySelectorAll('.nav-item[data-p]').forEach(function(a) {
-    var prefix = a.dataset.p;
-    if (p === prefix || p.startsWith(prefix + '/')) a.classList.add('active');
+    var prk = a.dataset.p;
+    var active = (prk === '/admin') ? (p === '/admin') : (p === prk || p.startsWith(prk + '/'));
+    if (active) a.classList.add('active');
   });
 
   // Mobile sidebar toggle
