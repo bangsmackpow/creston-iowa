@@ -298,7 +298,7 @@ export async function handleSiteBuilder(request, env, url, user) {
             if (item.address) html += '<div style="font-size:.72rem;color:#888;">' + esc(item.address.slice(0,50)) + '</div>';
             html += '</div>';
             html += '<label style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:0;">';
-            html += '<input type="checkbox" checked class="result-check" data-item=\'' + JSON.stringify(item).replace(/'/g,"&#39;") + '\' style="width:16px;height:16px;">';
+            html += '<input type="checkbox" checked class="result-check" data-item=\\'' + JSON.stringify(item).replace(/'/g,"&#39;") + '\\' style="width:16px;height:16px;">';
             html += '</label></div>';
             if (item.summary) html += '<div style="font-size:.75rem;color:#555;margin-top:6px;line-height:1.5;">' + esc(item.summary.slice(0,100)) + (item.summary.length>100?'…':'') + '</div>';
             html += '<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">';
