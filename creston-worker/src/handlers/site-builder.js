@@ -108,7 +108,7 @@ export async function handleSiteBuilder(request, env, url, user) {
           📥 Import Queue (${queue.length} items ready)
         </h3>
         <div style="display:flex;gap:8px;">
-          <button onclick="importAll()" class="btn-admin-primary">✅ Import All as Drafts</button>
+          <button onclick="importAll(event)" class="btn-admin-primary">✅ Import All as Drafts</button>
           <button onclick="clearQueue()" class="btn-admin-secondary">🗑️ Clear Queue</button>
         </div>
       </div>
@@ -282,7 +282,7 @@ export async function handleSiteBuilder(request, env, url, user) {
         html += '<h3 style="font-family:sans-serif;font-size:.95rem;margin:0;">Discovery Results</h3>';
         html += '<div style="display:flex;gap:8px;">';
         html += '<button onclick="selectAll()" class="btn-admin-secondary" style="font-size:.78rem;">Select All</button>';
-        html += '<button onclick="addToQueue()" class="btn-admin-primary">📥 Add Selected to Import Queue</button>';
+        html += '<button onclick="addToQueue(event)" class="btn-admin-primary">📥 Add Selected to Import Queue</button>';
         html += '</div></div>';
 
         for (const [type, items] of Object.entries(results)) {
@@ -319,7 +319,8 @@ export async function handleSiteBuilder(request, env, url, user) {
         document.querySelectorAll('.result-check').forEach(cb => cb.checked = true);
       }
 
-      async function addToQueue() {
+      async function addToQueue(e) {
+        if (e) { e.preventDefault(); e.stopPropagation(); }
         const selected = [...document.querySelectorAll('.result-check:checked')].map(cb => {
           try { return JSON.parse(cb.dataset.item); } catch { return null; }
         }).filter(Boolean);
@@ -327,31 +328,47 @@ export async function handleSiteBuilder(request, env, url, user) {
 
         const qs = document.getElementById('queue-status');
         if (qs) { qs.textContent = '⏳ Adding to queue...'; qs.style.color='#888'; }
-        const r = await fetch('/admin/site-builder/import', {
-          method:'POST', headers:H,
-          body: JSON.stringify({ items: selected, destination: 'drafts' })
-        });
-        const d = await r.json();
-        if (d.ok) {
-          if (qs) { qs.textContent = '✅ ' + d.imported + ' items added to import queue. Refresh to see them.'; qs.style.color='#2d5a3d'; }
-          setTimeout(() => location.reload(), 1500);
-        } else {
-          if (qs) { qs.textContent = '❌ ' + (d.error||'Failed'); qs.style.color='#b84040'; }
+        try {
+          const r = await fetch('/admin/site-builder/import', {
+            method:'POST', headers:H,
+            body: JSON.stringify({ items: selected, destination: 'drafts' })
+          });
+          const d = await r.json();
+          if (d.ok) {
+            if (qs) { qs.textContent = '✅ ' + d.imported + ' items added to import queue. Refreshing...'; qs.style.color='#2d5a3d'; }
+            setTimeout(() => location.reload(), 1200);
+          } else {
+            throw new Error(d.error || 'Failed to add items');
+          }
+        } catch (err) {
+          if (qs) { qs.textContent = '❌ ' + err.message; qs.style.color='#b84040'; }
+          console.error('Queue error:', err);
         }
       }
 
-      async function importAll() {
+      async function importAll(e) {
+        if (e) { e.preventDefault(); e.stopPropagation(); }
         const checked = [...document.querySelectorAll('[data-id]:checked')].map(cb => cb.dataset.id);
         const is = document.getElementById('import-status');
         if (!confirm('Import ' + (checked.length || 'all') + ' items to Drafts?')) return;
-        is.textContent = '⏳ Importing...'; is.style.color='#888';
-        const r = await fetch('/admin/site-builder/import', {
-          method:'POST', headers:H,
-          body: JSON.stringify({ queueIds: checked.length ? checked : 'all', destination: 'drafts', fromQueue: true })
-        });
-        const d = await r.json();
-        if (d.ok) { is.textContent = '✅ Imported ' + d.imported + ' items to Drafts!'; is.style.color='#2d5a3d'; setTimeout(()=>location.reload(), 1500); }
-        else { is.textContent = '❌ ' + (d.error||'Failed'); is.style.color='#b84040'; }
+        
+        if (is) { is.textContent = '⏳ Importing...'; is.style.color='#888'; }
+        try {
+          const r = await fetch('/admin/site-builder/import', {
+            method:'POST', headers:H,
+            body: JSON.stringify({ queueIds: checked.length ? checked : 'all', destination: 'drafts', fromQueue: true })
+          });
+          const d = await r.json();
+          if (d.ok) { 
+            if (is) { is.textContent = '✅ Imported ' + d.imported + ' items to Drafts!'; is.style.color='#2d5a3d'; }
+            setTimeout(() => location.reload(), 1500); 
+          } else {
+            throw new Error(d.error || 'Import failed');
+          }
+        } catch (err) {
+          if (is) { is.textContent = '❌ ' + err.message; is.style.color='#b84040'; }
+          console.error('Import error:', err);
+        }
       }
 
       async function clearQueue() {
